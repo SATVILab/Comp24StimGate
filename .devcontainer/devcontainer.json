@@ -17,7 +17,7 @@
 		},
 		"ghcr.io/devcontainers-contrib/features/vscode-cli:1": {},
 		"ghcr.io/devcontainers-contrib/features/apt-get-packages:1": {
-			"packages": "xvfb,vim,libcurl4-openssl-dev,aws"
+			"packages": "xvfb,vim,libcurl4-openssl-dev,awscli"
 		}
   },
   "customizations": {
