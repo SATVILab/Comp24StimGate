@@ -1,5 +1,5 @@
 {
-  "image": "ghcr.io/miguelrodo/comptemplate",
+  "image": "ghcr.io/satvilab/comp24stimgate",
   "customizations": {
     "vscode": {
       "extensions": [
