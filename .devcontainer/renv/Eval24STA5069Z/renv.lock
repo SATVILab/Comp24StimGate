@@ -1,26 +1,30 @@
 {
   "R": {
-    "Version": "4.4.1",
+    "Version": "4.4.2",
     "Repositories": [
       {
+        "Name": "BioCcontainers",
+        "URL": "https://bioconductor.org/packages/3.20/container-binaries/bioconductor_docker"
+      },
+      {
         "Name": "BioCsoft",
-        "URL": "https://bioconductor.org/packages/3.18/bioc"
+        "URL": "https://bioconductor.org/packages/3.20/bioc"
       },
       {
         "Name": "BioCann",
-        "URL": "https://bioconductor.org/packages/3.18/data/annotation"
+        "URL": "https://bioconductor.org/packages/3.20/data/annotation"
       },
       {
         "Name": "BioCexp",
-        "URL": "https://bioconductor.org/packages/3.18/data/experiment"
+        "URL": "https://bioconductor.org/packages/3.20/data/experiment"
       },
       {
         "Name": "BioCworkflows",
-        "URL": "https://bioconductor.org/packages/3.18/workflows"
+        "URL": "https://bioconductor.org/packages/3.20/workflows"
       },
       {
         "Name": "BioCbooks",
-        "URL": "https://bioconductor.org/packages/3.18/books"
+        "URL": "https://bioconductor.org/packages/3.20/books"
       },
       {
         "Name": "CRAN",
@@ -37,7 +41,7 @@
     ]
   },
   "Bioconductor": {
-    "Version": "3.19"
+    "Version": "3.20"
   },
   "Packages": {
     "BH": {
@@ -52,23 +56,13 @@
       "Version": "2.66.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/Biobase",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "2cd604f",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::Biobase",
-      "RemoteRef": "bioc::Biobase",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "2.66.0",
       "Requirements": [
         "BiocGenerics",
         "R",
         "methods",
         "utils"
       ],
-      "Hash": "3ffe6f6fe1d0679353304664771f8024"
+      "Hash": "f6e716bdfed8acfd2d4137be7d4fa8f9"
     },
     "BiocGenerics": {
       "Package": "BiocGenerics",
@@ -109,16 +103,6 @@
       "Version": "0.32.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/DelayedArray",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "980c34e",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::DelayedArray",
-      "RemoteRef": "bioc::DelayedArray",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "0.32.0",
       "Requirements": [
         "BiocGenerics",
         "IRanges",
@@ -132,7 +116,7 @@
         "stats",
         "stats4"
       ],
-      "Hash": "514dc2ada82a3f76247d9a0da271e702"
+      "Hash": "c4f42dda8d17648382f46b5d0e8a962a"
     },
     "Formula": {
       "Package": "Formula",
@@ -173,6 +157,19 @@
       ],
       "Hash": "d638b141693a9c73f653787ea29db79f"
     },
+    "IDPmisc": {
+      "Package": "IDPmisc",
+      "Version": "1.1.21",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "grid",
+        "lattice",
+        "methods"
+      ],
+      "Hash": "733d15f6cd2f8671d913676a29641e25"
+    },
     "IRanges": {
       "Package": "IRanges",
       "Version": "2.40.0",
@@ -188,6 +185,17 @@
         "utils"
       ],
       "Hash": "ecc5317f9624d9992f36e3a900a8ec3b"
+    },
+    "KernSmooth": {
+      "Package": "KernSmooth",
+      "Version": "2.23-24",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "stats"
+      ],
+      "Hash": "9f33a1ee37bbe8919eb2ec4b9f2473a5"
     },
     "MASS": {
       "Package": "MASS",
@@ -247,22 +255,12 @@
       "Version": "1.82.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/RBGL",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "88aa55c",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::RBGL",
-      "RemoteRef": "bioc::RBGL",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "1.82.0",
       "Requirements": [
         "BH",
         "graph",
         "methods"
       ],
-      "Hash": "102cfc8f67059e1275fc2ec27b321927"
+      "Hash": "08f715b241e1b08c7e781d2cce4247ec"
     },
     "RColorBrewer": {
       "Package": "RColorBrewer",
@@ -279,17 +277,7 @@
       "Version": "2.18.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/RProtoBufLib",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "f4b0679",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::RProtoBufLib",
-      "RemoteRef": "bioc::RProtoBufLib",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "2.18.0",
-      "Hash": "ac19044066c3f99252f4dcbc1b12cf0e"
+      "Hash": "38b8aa1b07111ecb6ddd6e55a229e55f"
     },
     "Rcpp": {
       "Package": "Rcpp",
@@ -320,16 +308,6 @@
       "Version": "2.50.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/Rgraphviz",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "afcb63b",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::Rgraphviz",
-      "RemoteRef": "bioc::Rgraphviz",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "2.50.0",
       "Requirements": [
         "R",
         "grDevices",
@@ -340,27 +318,17 @@
         "stats4",
         "utils"
       ],
-      "Hash": "e23096f3812a2f5e7b21312bda3b1e13"
+      "Hash": "a79fe80031459fe9fe60e427780b877c"
     },
     "Rhdf5lib": {
       "Package": "Rhdf5lib",
       "Version": "1.28.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/Rhdf5lib",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "f37cb76",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::Rhdf5lib",
-      "RemoteRef": "bioc::Rhdf5lib",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "1.28.0",
       "Requirements": [
         "R"
       ],
-      "Hash": "9b300d6abb467b909c04ea7f6edf9d59"
+      "Hash": "f5a052c32d0479a1c12460a4f45a2bfe"
     },
     "S4Arrays": {
       "Package": "S4Arrays",
@@ -771,23 +739,13 @@
       "Version": "2.18.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/cytolib",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "05c1029",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::cytolib",
-      "RemoteRef": "bioc::cytolib",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "2.18.0",
       "Requirements": [
         "BH",
         "R",
         "RProtoBufLib",
         "Rhdf5lib"
       ],
-      "Hash": "70b1ef2a5de69272903c08b529c7bf1c"
+      "Hash": "bb59ae7c2d8486c8b1a62553692ce751"
     },
     "data.table": {
       "Package": "data.table",
@@ -799,6 +757,18 @@
         "methods"
       ],
       "Hash": "2e00b378fc3be69c865120d9f313039a"
+    },
+    "deldir": {
+      "Package": "deldir",
+      "Version": "2.0-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics"
+      ],
+      "Hash": "24754fce82729ff85317dd195b6646a8"
     },
     "desc": {
       "Package": "desc",
@@ -925,21 +895,27 @@
       "Repository": "RSPM",
       "Hash": "aa5e1cd11c2d15497494c5292d7ffcc8"
     },
+    "flowClust": {
+      "Package": "flowClust",
+      "Version": "3.44.0",
+      "Source": "Bioconductor",
+      "Repository": "Bioconductor 3.20",
+      "Requirements": [
+        "Biobase",
+        "BiocGenerics",
+        "R",
+        "flowCore",
+        "graph",
+        "methods",
+        "parallel"
+      ],
+      "Hash": "be26921ca8b0bae53fd69ff4cb40facc"
+    },
     "flowCore": {
       "Package": "flowCore",
       "Version": "2.18.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/flowCore",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "b94a145",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::flowCore",
-      "RemoteRef": "bioc::flowCore",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "2.18.0",
       "Requirements": [
         "BH",
         "Biobase",
@@ -958,23 +934,39 @@
         "stats4",
         "utils"
       ],
-      "Hash": "d888abf7468509dba5f18db10d55143b"
+      "Hash": "9e9881abfd86d467c46935caebd0c02c"
+    },
+    "flowViz": {
+      "Package": "flowViz",
+      "Version": "1.70.0",
+      "Source": "Bioconductor",
+      "Repository": "Bioconductor 3.20",
+      "Requirements": [
+        "Biobase",
+        "IDPmisc",
+        "KernSmooth",
+        "MASS",
+        "R",
+        "RColorBrewer",
+        "flowCore",
+        "grDevices",
+        "graphics",
+        "grid",
+        "hexbin",
+        "lattice",
+        "latticeExtra",
+        "methods",
+        "stats",
+        "stats4",
+        "utils"
+      ],
+      "Hash": "42a1b32322965c08d561beaf13741ae7"
     },
     "flowWorkspace": {
       "Package": "flowWorkspace",
       "Version": "4.18.0",
       "Source": "Bioconductor",
       "Repository": "Bioconductor 3.20",
-      "git_url": "https://git.bioconductor.org/packages/flowWorkspace",
-      "git_branch": "RELEASE_3_20",
-      "git_last_commit": "58cdf1d",
-      "git_last_commit_date": "2024-10-29",
-      "RemoteType": "bioc",
-      "RemotePkgRef": "bioc::flowWorkspace",
-      "RemoteRef": "bioc::flowWorkspace",
-      "RemoteRepos": "https://bioconductor.org/packages/3.20/bioc",
-      "RemotePkgPlatform": "source",
-      "RemoteSha": "4.18.0",
       "Requirements": [
         "BH",
         "Biobase",
@@ -1005,7 +997,7 @@
         "tools",
         "utils"
       ],
-      "Hash": "564660f6a31360d55c2623632f66f95c"
+      "Hash": "a19c78d06b5ec9796c4c4ccc690dcea5"
     },
     "fontawesome": {
       "Package": "fontawesome",
@@ -1256,6 +1248,23 @@
       ],
       "Hash": "9171f898db9d9c4c1b2c745adc2c1ef1"
     },
+    "hexbin": {
+      "Package": "hexbin",
+      "Version": "1.28.5",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics",
+        "grid",
+        "lattice",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "10a44851f04ff2d0e26b1c84c38d914a"
+    },
     "highr": {
       "Package": "highr",
       "Version": "0.11",
@@ -1380,6 +1389,19 @@
       "Repository": "RSPM",
       "Hash": "6154ec2223172bce8162d4153cda21f7"
     },
+    "interp": {
+      "Package": "interp",
+      "Version": "1.1-6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "Rcpp",
+        "RcppEigen",
+        "deldir"
+      ],
+      "Hash": "824328a500468b76e61402b2cb3033df"
+    },
     "isoband": {
       "Package": "isoband",
       "Version": "0.2.7",
@@ -1416,6 +1438,16 @@
         "tibble"
       ],
       "Hash": "74c00eaba35b9631d1656e84585bb6aa"
+    },
+    "jpeg": {
+      "Package": "jpeg",
+      "Version": "0.1-10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "031a0b683d001a7519202f0628fc0358"
     },
     "jquerylib": {
       "Package": "jquerylib",
@@ -1499,6 +1531,26 @@
         "utils"
       ],
       "Hash": "cc5ac1ba4c238c7ca9fa6a87ca11a7e2"
+    },
+    "latticeExtra": {
+      "Package": "latticeExtra",
+      "Version": "0.6-30",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "MASS",
+        "R",
+        "RColorBrewer",
+        "grDevices",
+        "grid",
+        "interp",
+        "jpeg",
+        "lattice",
+        "png",
+        "stats",
+        "utils"
+      ],
+      "Hash": "0857b103442b4657416508733c8c6678"
     },
     "lifecycle": {
       "Package": "lifecycle",
@@ -1743,6 +1795,30 @@
       ],
       "Hash": "df58958f293b166e4ab885ebcad90e02"
     },
+    "openCyto": {
+      "Package": "openCyto",
+      "Version": "2.18.0",
+      "Source": "Bioconductor",
+      "Repository": "Bioconductor 3.20",
+      "Requirements": [
+        "BH",
+        "Biobase",
+        "BiocGenerics",
+        "R",
+        "RBGL",
+        "RColorBrewer",
+        "cpp11",
+        "data.table",
+        "flowClust",
+        "flowCore",
+        "flowViz",
+        "flowWorkspace",
+        "graph",
+        "methods",
+        "ncdfFlow"
+      ],
+      "Hash": "bdcb2b45730fbe271872fc7f4ea4fae2"
+    },
     "openssl": {
       "Package": "openssl",
       "Version": "2.2.2",
@@ -1856,6 +1932,16 @@
         "utils"
       ],
       "Hash": "d47fdfc45aeba360ce9db50643de3fbd"
+    },
+    "png": {
+      "Package": "png",
+      "Version": "0.1-8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "bd54ba8a0a5faded999a7aab6e46b374"
     },
     "polynom": {
       "Package": "polynom",
@@ -2019,13 +2105,18 @@
     },
     "renv": {
       "Package": "renv",
-      "Version": "1.0.11",
-      "Source": "Repository",
-      "Repository": "RSPM",
+      "Version": "1.0.11.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "rstudio",
+      "RemoteRepo": "renv",
+      "RemoteRef": "main",
+      "RemoteSha": "12f7d7be5b740428664a99f01157e0173d4d8ca3",
       "Requirements": [
         "utils"
       ],
-      "Hash": "47623f66b4e80b3b0587bc5d7b309888"
+      "Hash": "00b9e7f7cd9090b0f41b0f48536c7d4d"
     },
     "rlang": {
       "Package": "rlang",
