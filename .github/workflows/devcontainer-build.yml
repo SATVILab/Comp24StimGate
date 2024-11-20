@@ -5,10 +5,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      use_cache:
+        description: 'Use cache when building the image'
+        required: false
+        default: 'true'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      USE_CACHE: ${{ github.event.inputs.use_cache != '' && github.event.inputs.use_cache || 'true' }}
 
     steps:
       - name: Checkout (GitHub)
@@ -30,11 +37,18 @@ jobs:
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
-      - name: Pre-build dev container image
+      - name: Pre-build dev container image (with cache)
+        if: env.USE_CACHE == 'true'
         uses: devcontainers/ci@v0.3
         with:
           imageName: ${{ env.IMAGE_NAME }}
           cacheFrom: ${{ env.IMAGE_NAME }}
+
+      - name: Pre-build dev container image (without cache)
+        if: env.USE_CACHE != 'true'
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ${{ env.IMAGE_NAME }}
 
       - name: Update or create prebuild/devcontainer.json
         run: |
