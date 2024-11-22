@@ -5,6 +5,20 @@
     },
     {
       "path": "../stimgate"
+    },
+    {
+      "path": "../DataRawMTBVAC050"
+    },
+    {
+      "path": "../Analysis24StimGate"
     }
-  ]
+  ],
+  "settings": {
+    "files.watcherExclude": {
+      "../DataRawMTBVAC050/**": true
+    },
+    "search.exclude": {
+      "../DataRawMTBVAC050/**": true
+    }
+  }
 }
