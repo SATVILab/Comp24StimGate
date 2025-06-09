@@ -2,24 +2,57 @@ name: 'Pre-build Dev Container'
 
 on:
   push:
+    # By default, this workflow only triggers on pushes to 'main'.
+    # To enable auto-runs on *all* branches, change to:
+    # branches:
+    #   - '**'
     branches:
-      - main
+      - 'main'
   workflow_dispatch:
     inputs:
-      use_cache:
-        description: 'Use cache when building the image'
-        required: false
-        default: 'true'
+      branch:
+        description: 'Branch to checkout'
+        required: true
+        default: 'main'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      USE_CACHE: ${{ github.event.inputs.use_cache != '' && github.event.inputs.use_cache || 'true' }}
 
     steps:
-      - name: Checkout (GitHub)
+      - name: Set branch name
+        id: extract_branch
+        run: |
+          # if a workflow dispatch input is provided, use it;
+          # otherwise, check the GITHUB_REF,
+          # if it is a branch (it will be a branch unless
+          # it's a tag).
+          # otherwise, default to 'main' (so this only
+          # happens if a tag automatically triggered
+          # the workflow).
+          # if it's an automated job on a branch,
+          # then it will be that branch that 
+          # triggered it that is the branch name.
+          # if it is not, then it defaults to 'main'.
+          if [ -n "${{ github.event.inputs.branch }}" ]; then
+            branch="${{ github.event.inputs.branch }}"
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            branch="${GITHUB_REF#refs/heads/}"
+          else
+            branch="main"
+          fi
+          echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+
+      - name: Debug BRANCH_NAME
+        run: |
+          echo "BRANCH_NAME is set to: $BRANCH_NAME"
+        env:
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+
+      - name: Checkout branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH_NAME }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -29,7 +62,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set lowercase image name
-        run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+        run: |
+          BRANCH_SUFFIX=${BRANCH_NAME//\//-}
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}-${BRANCH_SUFFIX,,}" >> $GITHUB_ENV
 
       - name: Debug IMAGE_NAME
         run: |
@@ -37,18 +72,28 @@ jobs:
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
-      - name: Pre-build dev container image (with cache)
-        if: env.USE_CACHE == 'true'
-        uses: devcontainers/ci@v0.3
-        with:
-          imageName: ${{ env.IMAGE_NAME }}
-          cacheFrom: ${{ env.IMAGE_NAME }}
+      - name: Check if cache image exists
+        id: cache_check
+        run: |
+          set -e
+          IMAGE=${{ env.IMAGE_NAME }}
+          TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          # Remove 'ghcr.io/' prefix for API compatibility
+          IMAGE_PATH="${IMAGE#ghcr.io/}"
+          # Query GitHub Container Registry for the image
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+            "https://ghcr.io/v2/${IMAGE_PATH}/manifests/latest")
+          if [ "$STATUS" -eq 200 ]; then
+            echo "USE_CACHE_FROM=true" >> $GITHUB_ENV
+          else
+            echo "USE_CACHE_FROM=false" >> $GITHUB_ENV
+          fi
 
-      - name: Pre-build dev container image (without cache)
-        if: env.USE_CACHE != 'true'
+      - name: Pre-build dev container image
         uses: devcontainers/ci@v0.3
         with:
           imageName: ${{ env.IMAGE_NAME }}
+          cacheFrom: ${{ env.USE_CACHE_FROM == 'true' && env.IMAGE_NAME || '' }}
 
       - name: Update or create prebuild/devcontainer.json
         run: |
