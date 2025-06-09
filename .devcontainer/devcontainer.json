@@ -16,7 +16,7 @@
 			"installRadian": true,
 			"version": "none",
 			"pakVersion": "auto",
-			"vscodeRSupport": "full",
+			"vscodeRSupport": "minimal",
 			"pandocVersion": "auto"
 		},
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
