@@ -8,6 +8,12 @@
     },
     {
       "path": "../Analysis24StimGate"
+    },
+    {
+      "path": "../DataProcessed25PostMortemCyTOFCytokines"
+    },
+    {
+      "path": "../DataTidyACSCyTOFCytokinesTCells"
     }
   ],
   "settings": {

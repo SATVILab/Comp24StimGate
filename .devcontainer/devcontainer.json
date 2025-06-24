@@ -57,6 +57,22 @@
             "packages": "read",
             "workflows": "write"
           }
+        },
+        "SATVILab/DataProcessed25PostMortemCyTOFCytokines": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
+        },
+        "SATVILab/DataTidyACSCyTOFCytokinesTCells": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
         }
       }
     }
