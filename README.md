@@ -18,14 +18,6 @@ For more information, please contact:
 
 ### Reproduction instructions
 
-#### GitHub Codespaces
+If inside a development container, just run `scripts/run-pipeline.sh`.
 
-- Ensure that the GitHub Codespace has access to the following environment variables:
-  - `GH_TOKEN`: Classic PAT for GitHub
-- Open GitHub Codespace
-- Open terminal in repo you wish to run:
-  - Ctrl + Shift + ` (Ctrl + Shift + backtick; backtick often found top-left of keyboard)
-  - Choose repo from drop-down menu.
-- Start `R`: run the command `radian`. Within `R`:
-  - *Restore R packages*: Run `renv::restore(prompt = FALSE)`
-  - *Build project*: Run `projr::projr_build_dev()`
+If outside a development container, run `scripts/clone-repos.sh` to clone the required repositories, then run `scripts/run-pipeline.sh`.
