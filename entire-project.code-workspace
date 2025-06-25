@@ -7,13 +7,13 @@
       "path": "../stimgate"
     },
     {
-      "path": "../Analysis24StimGate"
-    },
-    {
       "path": "../DataProcessed25PostMortemCyTOFCytokines"
     },
     {
       "path": "../DataTidyACSCyTOFCytokinesTCells"
+    },
+    {
+      "path": "../Analysis24StimGate"
     }
   ],
   "settings": {

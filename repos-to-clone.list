@@ -2,6 +2,6 @@
 # <repo> is the repo name, for example:
 # SATVILab/projr
 SATVILab/stimgate@dev
-SATVILab/Analysis24StimGate
 SATVILab/DataProcessed25PostMortemCyTOFCytokines
 SATVILab/DataTidyACSCyTOFCytokinesTCells
+SATVILab/Analysis24StimGate
