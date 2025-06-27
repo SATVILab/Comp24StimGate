@@ -1,0 +1,19 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "../stimgate"
+    },
+    {
+      "path": "../DataProcessed25PostMortemCyTOFCytokines"
+    },
+    {
+      "path": "../DataTidyACSCyTOFCytokinesTCells"
+    },
+    {
+      "path": "../Analysis24StimGate"
+    }
+  ]
+}
