@@ -4,10 +4,16 @@
       "path": "."
     },
     {
-      "path": "../UtilsCytoRSV"
+      "path": "../analysis"
+    },
+    {
+      "path": "../paper"
     },
     {
       "path": "../stimgate"
+    },
+    {
+      "path": "../UtilsCytoRSV"
     },
     {
       "path": "../DataProcessed25PostMortemCyTOFCytokines"

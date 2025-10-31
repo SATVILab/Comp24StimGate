@@ -304,6 +304,11 @@ create_worktree_for_branch() {
   if local_branch_exists "$base" "$branch"; then
     echo "Adding worktree $dest (existing local branch '$branch')"
     git -C "$base" worktree add "$dest" "$branch"
+    if git -C "$base" rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+      git -C "$dest" branch --set-upstream-to="origin/$branch" || true
+    else
+      git -C "$dest" push -u origin HEAD:"$branch" || true
+    fi
   elif remote_branch_exists "$base" "$branch"; then
     echo "Adding worktree $dest (tracking origin/$branch)"
     git -C "$base" worktree add -b "$branch" "$dest" "origin/$branch"
