@@ -159,7 +159,7 @@ check_prerequisites() {
 # --- Usage -------------------------------------------------------------------
 usage() {
   cat <<'EOF'
-Usage: clone-repos.sh [--file <repo-list>] [--help]
+Usage: clone-repos.sh [--file <repo-list>] [--debug] [--help]
 
 Each non-empty, non-comment line in <repo-list> is one instruction. There are three kinds:
 
