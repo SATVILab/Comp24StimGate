@@ -257,12 +257,33 @@ clone_one_repo() {
     echo "Error: destination '$dest' exists and is not empty." >&2; return 1
   fi
 
-  local clone_opts=()
-  if [ "${all_branches:-0}" -eq 0 ]; then clone_opts=(--single-branch); fi
-  [ -n "$ref" ] && clone_opts=("${clone_opts[@]}" --branch "$ref")
-
-  echo "Cloning $repo_url → $dest ${ref:+(branch $ref)}"
-  git clone "${clone_opts[@]}" "$repo_url" "$dest"
+  # If a branch ref was requested, check whether it exists on the remote.
+  if [ -n "$ref" ]; then
+    if git ls-remote --exit-code --heads "$repo_url" "$ref" >/dev/null 2>&1; then
+      # Remote branch exists: clone it directly.
+      local clone_opts=()
+      if [ "${all_branches:-0}" -eq 0 ]; then clone_opts=(--single-branch); fi
+      clone_opts+=("--branch" "$ref")
+      echo "Cloning $repo_url → $dest (branch $ref)"
+      git clone "${clone_opts[@]}" "$repo_url" "$dest"
+    else
+      # Remote branch does not exist: clone default branch, create and publish the new one.
+      local clone_opts=()
+      if [ "${all_branches:-0}" -eq 0 ]; then clone_opts=(--single-branch); fi
+      echo "Remote branch '$ref' not found on $repo_url; creating it."
+      echo "Cloning default branch of $repo_url → $dest"
+      git clone "${clone_opts[@]}" "$repo_url" "$dest"
+      # Create the new branch locally and publish it upstream with tracking.
+      git -C "$dest" switch -c "$ref"
+      git -C "$dest" push -u origin HEAD:"$ref"
+    fi
+  else
+    # No branch ref requested: normal clone (default branch or all branches).
+    local clone_opts=()
+    if [ "${all_branches:-0}" -eq 0 ]; then clone_opts=(--single-branch); fi
+    echo "Cloning $repo_url → $dest"
+    git clone "${clone_opts[@]}" "$repo_url" "$dest"
+  fi
 }
 
 # --- Worktree flow -----------------------------------------------------------
