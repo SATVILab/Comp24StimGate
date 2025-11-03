@@ -1,0 +1,34 @@
+---
+title: Analyse MTBVAC050 data|>
+author: "Miguel Rodo"
+format:
+  html:
+    embed-resources: true
+---
+
+
+```{r}
+path_cohort_1 <- projr::projr_path_get(
+  "raw-data-mtbvac050", "cohort 1-original analysis", "MTBVAC A050_ 20210319_CS"
+)
+path_wsp_056 <- file.path(path_cohort_1, "MTBVAC A050_ 20210319_CS_primary_D0_56_QC_TRCS.wsp")
+wsp <- CytoML::open_flowjo_xml(path_wsp_056)
+fcs_vec_056 <- list.files(
+  path_cohort_1,
+  pattern = "_Day56_.*\\.fcs$|_Day0_.*\\.fcs$"
+)
+gs <- CytoML::flowjo_to_gatingset(
+  wsp,
+  subset = fcs_vec_056
+  )
+counts <- flowWorkspace::gs_pop_get_count_fast(gs)
+UtilsCytoRSV::chnl(gs)
+chnl_to_marker_lab <- UtilsCytoRSV::chnl_to_marker(
+  flowWorkspace::gh_pop_get_data(gs[[1]])
+  )
+```
+
+```{r}
+
+
+```

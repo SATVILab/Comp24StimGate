@@ -1,0 +1,29 @@
+^renv$
+^renv\.lock$
+^README\.Rmd$
+^.*\.Rproj$
+^\.Rproj\.user$
+^_projr-local\.yml$
+
+# Start of projr section: do not edit by hand (until `# End of projr section`)
+^_data_raw/
+^_data_raw$
+^_tmp/
+^_tmp$
+^_output/
+^_output$
+^docs/
+^docs$
+^_projr\.yml$
+^README\.Rmd$
+^Simulation\.qmd$
+^_dependencies\.R$
+^BUILDLOG\.md$
+^CHANGELOG\.md$
+^manifest\.csv$
+^Simulation_files/
+^Simulation_files$
+^Simulation\.html/
+^Simulation\.html$
+# End of projr section
+

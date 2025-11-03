@@ -1,0 +1,21 @@
+directories:
+  raw-data:
+    path: _data_raw
+  raw-data-mtbvac050:
+    path: ../DataRawMTBVAC050/FCS Files
+  cache:
+    path: _tmp
+  output:
+    path: _output
+  docs:
+    path: docs
+build:
+  git: yes
+  github:
+    input:
+      content: raw-data
+    output:
+      content:
+      - output
+      - docs
+

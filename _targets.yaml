@@ -1,0 +1,6 @@
+sim_test:
+  script: targets/_targets-sim_test.R
+  store: _tmp/targets/sim_test/_targets
+sim_loop:
+  script: targets/_targets-sim_loop.R
+  store: _tmp/targets/sim_loop/_targets

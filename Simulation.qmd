@@ -1,0 +1,124 @@
+# Simulation
+
+```{r}
+library(tibble)
+library(ggplot2)
+fn_vec_r <- list.files("R", full.names = TRUE, pattern = "\\.R$")
+for (i in seq_along(fn_vec_r)) {
+  source(fn_vec_r[i])
+}
+```
+
+## HDCytoData
+
+```{r}
+Sys.setenv("TAR_PROJECT" = "sim_test")
+targets::tar_make()
+```
+
+```{r}
+Sys.setenv("TAR_PROJECT" = "sim_loop")
+targets::tar_make(callr_function = NULL)
+```
+
+```{r}
+corr_tbl_overall <- targets::tar_read(corr_tbl_overall_easy)
+corr_tbl_overall_tg_any <- corr_tbl_overall |>
+  dplyr::filter(grepl("^tg", gating_method)) |>
+  dplyr::filter(type == "any") |>
+  dplyr::group_by(gating_method) |>
+  dplyr::summarise(
+    corr_mean = mean(corr_mean, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::filter(corr_mean == max(corr_mean)) |>
+  dplyr::slice(1) 
+
+corr_tbl_plot <- corr_tbl_overall |>
+  dplyr::filter(!grepl("^tg", gating_method)) |>
+  dplyr::bind_rows(
+    corr_tbl_overall |>
+      dplyr::semi_join(
+        corr_tbl_overall_tg_any,
+        by = c("gating_method")
+      ) |>
+      dplyr::mutate(
+        gating_method = "tg"
+      )
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    type = factor(type, levels = c("any", "single", "combn")),
+  )
+p <- ggplot(corr_tbl_plot, aes(x = cyt, y = corr_mean, fill = gating_method)) +
+  cowplot::theme_cowplot() +
+  cowplot::background_grid() +
+  theme(
+    plot.background = element_rect(fill = "white"),
+    panel.background = element_rect(fill = "white")
+  ) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(corr_method~type, ncol = 3, scales = "free_x") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+path_p <- projr::projr_path_get("cache", "sim_loop", "plots", "easy-corr_mean_by_cyt.png")
+ggsave(
+  filename = path_p,
+  plot = p,
+  width = 10,
+  height = 12
+)
+```
+
+```{r}
+corr_tbl_overall <- targets::tar_read(corr_tbl_overall_poor_separation)
+corr_tbl_overall_tg_any <- corr_tbl_overall |>
+  dplyr::filter(grepl("^tg", gating_method)) |>
+  dplyr::filter(type == "any") |>
+  dplyr::group_by(gating_method) |>
+  dplyr::summarise(
+    corr_mean = mean(corr_mean, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::filter(corr_mean == max(corr_mean)) |>
+  dplyr::slice(1) 
+
+corr_tbl_plot <- corr_tbl_overall |>
+  dplyr::filter(!grepl("^tg", gating_method)) |>
+  dplyr::bind_rows(
+    corr_tbl_overall |>
+      dplyr::semi_join(
+        corr_tbl_overall_tg_any,
+        by = c("gating_method")
+      ) |>
+      dplyr::mutate(
+        gating_method = "tg"
+      )
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    type = factor(type, levels = c("any", "single", "combn")),
+  )
+p <- ggplot(corr_tbl_plot, aes(x = cyt, y = corr_mean, fill = gating_method)) +
+  cowplot::theme_cowplot() +
+  cowplot::background_grid() +
+  theme(
+    plot.background = element_rect(fill = "white"),
+    panel.background = element_rect(fill = "white")
+  ) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(corr_method~type, ncol = 3, scales = "free_x") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+path_p <- projr::projr_path_get("cache", "sim_loop", "plots", "poor_separation-corr_mean_by_cyt.png")
+ggsave(
+  filename = path_p,
+  plot = p,
+  width = 10,
+  height = 12
+)
+```
