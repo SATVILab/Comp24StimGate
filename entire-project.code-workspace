@@ -10,10 +10,10 @@
       "path": "../paper"
     },
     {
-      "path": "../stimgate"
+      "path": "../UtilsCytoRSV"
     },
     {
-      "path": "../UtilsCytoRSV"
+      "path": "../stimgate"
     },
     {
       "path": "../DataProcessed25PostMortemCyTOFCytokines"

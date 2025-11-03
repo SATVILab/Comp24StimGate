@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
+# vscode-workspace-add.sh — VS Code workspace updater for multi-repo / multi-branch setups
+# Portable: Bash ≥3.2 (macOS default), Linux, WSL, Git Bash
+#
+# Behaviour:
+#   • Lines starting with "@<branch>" inherit a "fallback repo":
+#       - Initially: the CURRENT repo's remote (the repo that contains repos.list).
+#       - After each clone line: fallback updates to the repo used/implied by that line.
+#   • "@<branch>" resolves to a worktree path by default.
+#   • Per-line opt-out: add "--no-worktree" or "-n" to treat @branch as a clone instead.
+#
+# Examples (repos.list):
+#   @data-tidy data-tidy                 # uses current repo as fallback (worktree path)
+#   SATVILab/projr                       # fallback → SATVILab/projr
+#   @dev                                 # worktree path on SATVILab/projr
+#   @dev-miguel                          # worktree path on SATVILab/projr
+#   SATVILab/Analysis@test               # fallback → SATVILab/Analysis
+#   @tweak                               # worktree path on SATVILab/Analysis
+#   @dev-2                               # worktree path on SATVILab/Analysis
 
 set -e
 
@@ -7,22 +25,40 @@ usage() {
 Usage: $0 [options]
 
 Options:
-  -f, --file <file>       Specify the repository list file (default: 'repos-to-clone.list').
+  -f, --file <file>       Specify the repository list file (default: 'repos.list').
+  -d, --debug             Enable debug output (shows path calculations).
   -h, --help              Display this help message.
 
-Each line in the repository list file can be in the following formats:
-  repo_spec [target_directory]
+Each line in the repository list file can be in one of three formats:
+
+1) Clone a repo (default branch, or all branches with -a)
+   owner/repo [target_directory] [-a|--all-branches]
+   https://host/owner/repo [target_directory] [-a|--all-branches]
+
+2) Clone exactly one branch
+   owner/repo@branch [target_directory]
+
+3) Create a worktree from the current fallback repo
+   @branch [target_directory] [--no-worktree|-n]
 
 Where repo_spec is one of:
   owner/repo[@branch]
-  datasets/owner/repo[@branch]
   https://<host>/owner/repo[@branch]
+  @branch (inherits from fallback repo)
+
+Fallback repo rules:
+  • Initially, the fallback repo is the repository containing repos.list.
+  • After any successful clone line (1 or 2), the fallback repo becomes that
+    newly cloned directory. @branch lines then resolve to worktree paths off it.
+  • @branch lines themselves do not change the fallback.
 
 Examples:
   user1/project1
   user2/project2@develop ./Projects/Repo2
-  datasets/user3/dataset1@main ../Datasets
   https://gitlab.com/user4/project4@feature-branch ./GitLabRepos
+  @analysis analysis                   # worktree off current repo
+  SATVILab/stimgate                    # fallback updates
+  @dev  stimgate-dev                   # worktree off SATVILab/stimgate
 EOF
 }
 
@@ -166,39 +202,161 @@ get_workspace_file() {
   fi
 }
 
+spec_to_repo_name() {
+  # Extract repo name from owner/repo or https URL
+  local spec="$1"
+  case "$spec" in
+    https://*)
+      spec="${spec%.git}"
+      basename "$spec"
+      ;;
+    */*)
+      spec="${spec%.git}"
+      printf '%s\n' "${spec##*/}"
+      ;;
+    *)
+      printf '%s\n' "$spec"
+      ;;
+  esac
+}
+
 build_paths_list() {
   local repos_list_file="$1"
   local current_dir="$2"
+  local debug="${3:-false}"
+  local parent_dir
+  parent_dir="$(dirname "$current_dir")"
+  
   local paths_list="."
-  local line repo_spec target_dir repo_url_no_branch dir repo_path relative_repo_path
+  local line trimmed first target_dir branch repo_spec repo_no_ref ref
+  local fallback_repo_name repo_name is_worktree no_worktree repo_path relative_repo_path
+  
+  # Initialize fallback to current repo (the one containing repos.list)
+  fallback_repo_name="$(basename "$current_dir")"
+  [[ "$debug" == true ]] && echo "[DEBUG] Initial fallback repo: $fallback_repo_name" >&2
 
   while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in ''|\#*) continue ;; esac
-    line="$(printf '%s\n' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-    [ -z "$line" ] && continue
+    # Trim and skip comments/blank lines
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    case "$trimmed" in \#*|"") continue ;; esac
+    case "$trimmed" in *" # "*) trimmed="${trimmed%% # *}" ;; *" #"*) trimmed="${trimmed%% #*}" ;; esac
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"; trimmed=${trimmed%$'\r'}
+    [ -z "$trimmed" ] && continue
+    
+    [[ "$debug" == true ]] && echo "[DEBUG] Processing line: $trimmed" >&2
 
-    repo_spec="$(printf '%s\n' "$line" | awk '{print $1}')"
-    target_dir="$(printf '%s\n' "$line" | awk '{print $2}')"
-    case "$repo_spec" in *@*) repo_url_no_branch="${repo_spec%@*}" ;; *) repo_url_no_branch="$repo_spec" ;; esac
-    dir="$(basename "$repo_url_no_branch" .git)"
+    # Parse the line (word splitting is intentional)
+    set -f
+    # shellcheck disable=SC2086
+    set -- $trimmed
+    [ "$#" -eq 0 ] && { set +f; continue; }
+    
+    first="$1"; shift
+    target_dir=""
+    is_worktree=0
+    no_worktree=0
+    
+    case "$first" in
+      @*)
+        # Worktree line: @branch [target_dir] [--no-worktree|-n]
+        branch="${first#@}"
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            -n|--no-worktree) no_worktree=1 ;;
+            -a|--all-branches) ;; # ignore for path calculation
+            -*)
+              ;; # ignore unknown options
+            *)
+              if [ -z "$target_dir" ]; then
+                target_dir="$1"
+              fi
+              ;;
+          esac
+          shift
+        done
+        
+        # Determine if this is a worktree or clone
+        if [ "$no_worktree" -eq 1 ]; then
+          is_worktree=0
+        else
+          is_worktree=1
+        fi
+        
+        if [ "$is_worktree" -eq 1 ]; then
+          # Worktree path: ../<fallback_repo>-<branch> or ../<target_dir>
+          if [ -n "$target_dir" ]; then
+            repo_path="$parent_dir/$target_dir"
+          else
+            repo_path="$parent_dir/${fallback_repo_name}-${branch}"
+          fi
+          [[ "$debug" == true ]] && echo "[DEBUG]   @branch (worktree): branch=$branch, fallback=$fallback_repo_name, path=$repo_path" >&2
+        else
+          # Clone path: same as owner/repo@branch
+          if [ -n "$target_dir" ]; then
+            repo_path="$parent_dir/$target_dir"
+          else
+            repo_path="$parent_dir/${fallback_repo_name}-${branch}"
+          fi
+          [[ "$debug" == true ]] && echo "[DEBUG]   @branch (clone): branch=$branch, fallback=$fallback_repo_name, path=$repo_path" >&2
+        fi
+        ;;
+      *)
+        # Clone line: owner/repo[@branch] [target_dir]
+        repo_spec="$first"
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            -a|--all-branches) ;; # ignore for path calculation
+            -n|--no-worktree) ;; # ignore on clone lines
+            -*)
+              ;; # ignore unknown options
+            *)
+              if [ -z "$target_dir" ]; then
+                target_dir="$1"
+              fi
+              ;;
+          esac
+          shift
+        done
+        
+        # Split repo_spec into repo and optional branch
+        case "$repo_spec" in
+          *@*) repo_no_ref="${repo_spec%@*}"; ref="${repo_spec##*@}" ;;
+          *)   repo_no_ref="$repo_spec"; ref="" ;;
+        esac
+        
+        # Get the repo name for path calculation
+        repo_name="$(spec_to_repo_name "$repo_no_ref")"
+        
+        # Calculate the path
+        if [ -n "$target_dir" ]; then
+          repo_path="$parent_dir/$target_dir"
+        elif [ -n "$ref" ]; then
+          # Single-branch clone: <repo>-<branch>
+          repo_path="$parent_dir/${repo_name}-${ref}"
+        else
+          # Full clone: <repo>
+          repo_path="$parent_dir/$repo_name"
+        fi
+        
+        # Update fallback for subsequent @branch lines
+        fallback_repo_name="$repo_name"
+        [[ "$debug" == true ]] && echo "[DEBUG]   Clone line: repo=$repo_name, path=$repo_path, new fallback=$fallback_repo_name" >&2
+        ;;
+    esac
+    set +f
 
-    if [ -n "$target_dir" ]; then
-      repo_path="$current_dir/$target_dir/$dir"
-    else
-      repo_path="$current_dir/$dir"
-    fi
-
+    # Calculate relative path from current_dir to repo_path
     if command -v realpath >/dev/null 2>&1 && realpath --help 2>&1 | grep -q -- --relative-to; then
       relative_repo_path="$(realpath --relative-to="$current_dir" "$repo_path" 2>/dev/null || printf '%s\n' "$repo_path")"
     else
-      case "$repo_path" in
-        "$current_dir"/*) relative_repo_path="${repo_path#$current_dir/}" ;;
-        *)                relative_repo_path="$repo_path" ;;
-      esac
+      # Manual relative path calculation (for systems without realpath)
+      # Since repo_path is in parent_dir and current_dir is inside parent_dir,
+      # the relative path is always ../basename
+      relative_repo_path="../$(basename "$repo_path")"
     fi
 
     [ "$relative_repo_path" = "." ] && continue
-    paths_list="${paths_list}"$'\n'"../$relative_repo_path"
+    paths_list="${paths_list}"$'\n'"$relative_repo_path"
   done < "$repos_list_file"
 
   printf '%s\n' "$paths_list"
@@ -228,13 +386,24 @@ update_workspace_file() {
 }
 
 main() {
-  local repos_list_file="repos-to-clone.list"
+  local repos_list_file DEBUG
+  if [ ! -f "repos.list" ] && [ -f "repos-to-clone.list" ]; then
+    repos_list_file="repos-to-clone.list"
+  else
+    repos_list_file="repos.list"
+  fi
+  DEBUG=false
+  
   # Argument parsing
   while [ "$#" -gt 0 ]; do
     case "$1" in
       -f|--file)
         shift
         [ "$#" -gt 0 ] && repos_list_file="$1" && shift || { usage; exit 1; }
+        ;;
+      -d|--debug)
+        DEBUG=true
+        shift
         ;;
       -h|--help)
         usage; exit 0
@@ -252,11 +421,16 @@ main() {
     exit 1
   fi
 
+  [[ "$DEBUG" == true ]] && echo "[DEBUG] Using repo list file: $repos_list_file" >&2
+
   local current_dir workspace_file paths_list
   current_dir="$(pwd)"
   workspace_file="$(get_workspace_file "$current_dir")"
+  
+  [[ "$DEBUG" == true ]] && echo "[DEBUG] Workspace file: $workspace_file" >&2
+  [[ "$DEBUG" == true ]] && echo "[DEBUG] Current dir: $current_dir" >&2
 
-  paths_list="$(build_paths_list "$repos_list_file" "$current_dir")"
+  paths_list="$(build_paths_list "$repos_list_file" "$current_dir" "$DEBUG")"
 
   update_workspace_file "$workspace_file" "$paths_list"
 }

@@ -73,6 +73,22 @@
             "packages": "read",
             "workflows": "write"
           }
+        },
+        "SATVILab/Comp24StimGate": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
+        },
+        "SATVILab/UtilsCytoRSV": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
         }
       }
     }
