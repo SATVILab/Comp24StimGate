@@ -1,8 +1,10 @@
 # Simulation
 
 ```{r}
-library(tibble)
-library(ggplot2)
+suppressPackageStartupMessages({
+  library(tibble)
+  library(ggplot2)
+})
 fn_vec_r <- list.files("R", full.names = TRUE, pattern = "\\.R$")
 for (i in seq_along(fn_vec_r)) {
   source(fn_vec_r[i])
