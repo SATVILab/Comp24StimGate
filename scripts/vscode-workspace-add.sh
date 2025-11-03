@@ -231,6 +231,101 @@ build_paths_list() {
   local line trimmed first target_dir branch repo_spec repo_no_ref ref
   local fallback_repo_name repo_name is_worktree no_worktree repo_path relative_repo_path
   
+  # --- Planning phase: count references per repo ---
+  declare -a plan_repo_names=()
+  declare -a plan_ref_counts=()
+  
+  local plan_repo_idx plan_repo_name plan_fallback_name no_worktree
+  
+  # Initialize fallback to current repo
+  plan_fallback_name="$(basename "$current_dir")"
+  
+  [[ "$debug" == true ]] && echo "[DEBUG] Planning phase: counting references" >&2
+  [[ "$debug" == true ]] && echo "[DEBUG] Planning fallback starts as: $plan_fallback_name" >&2
+  
+  while IFS= read -r line || [ -n "$line" ]; do
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    case "$trimmed" in \#*|"") continue ;; esac
+    case "$trimmed" in *" # "*) trimmed="${trimmed%% # *}" ;; *" #"*) trimmed="${trimmed%% #*}" ;; esac
+    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"; trimmed=${trimmed%$'\r'}
+    [ -z "$trimmed" ] && continue
+    
+    set -f
+    set -- $trimmed
+    [ "$#" -eq 0 ] && { set +f; continue; }
+    
+    first="$1"; shift
+    case "$first" in
+      @*)
+        # Worktree line: count as reference to fallback repo if not --no-worktree
+        no_worktree=0
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            -n|--no-worktree) no_worktree=1 ;;
+          esac
+          shift
+        done
+        
+        if [ "$no_worktree" -eq 0 ]; then
+          # This is a worktree, count it as a reference to fallback
+          plan_repo_name="$plan_fallback_name"
+          
+          # Find or add this repo in the plan
+          plan_repo_idx=-1
+          for i in "${!plan_repo_names[@]}"; do
+            if [ "${plan_repo_names[$i]}" = "$plan_repo_name" ]; then
+              plan_repo_idx=$i
+              break
+            fi
+          done
+          
+          if [ "$plan_repo_idx" -ge 0 ]; then
+            plan_ref_counts[$plan_repo_idx]=$((${plan_ref_counts[$plan_repo_idx]} + 1))
+          else
+            plan_repo_names+=("$plan_repo_name")
+            plan_ref_counts+=("1")
+          fi
+          [[ "$debug" == true ]] && echo "[DEBUG]   Plan: worktree on fallback=$plan_fallback_name, count=${plan_ref_counts[${#plan_ref_counts[@]}-1]}" >&2
+        fi
+        # Note: worktree lines don't change the fallback
+        ;;
+      *)
+        # Clone line: extract repo name
+        repo_spec="$first"
+        case "$repo_spec" in
+          *@*) repo_no_ref="${repo_spec%@*}" ;;
+          *)   repo_no_ref="$repo_spec" ;;
+        esac
+        plan_repo_name="$(spec_to_repo_name "$repo_no_ref")"
+        
+        # Find or add this repo in the plan
+        plan_repo_idx=-1
+        for i in "${!plan_repo_names[@]}"; do
+          if [ "${plan_repo_names[$i]}" = "$plan_repo_name" ]; then
+            plan_repo_idx=$i
+            break
+          fi
+        done
+        
+        if [ "$plan_repo_idx" -ge 0 ]; then
+          plan_ref_counts[$plan_repo_idx]=$((${plan_ref_counts[$plan_repo_idx]} + 1))
+        else
+          plan_repo_names+=("$plan_repo_name")
+          plan_ref_counts+=("1")
+        fi
+        [[ "$debug" == true ]] && echo "[DEBUG]   Plan: clone repo=$plan_repo_name, count=${plan_ref_counts[${#plan_ref_counts[@]}-1]}" >&2
+        
+        # Update fallback for subsequent lines
+        plan_fallback_name="$plan_repo_name"
+        [[ "$debug" == true ]] && echo "[DEBUG]   Plan: fallback updated to $plan_fallback_name" >&2
+        ;;
+    esac
+    set +f
+  done < "$repos_list_file"
+  
+  [[ "$debug" == true ]] && echo "[DEBUG] Planning complete" >&2
+  
+  # --- Main processing: build paths ---
   # Initialize fallback to current repo (the one containing repos.list)
   fallback_repo_name="$(basename "$current_dir")"
   [[ "$debug" == true ]] && echo "[DEBUG] Initial fallback repo: $fallback_repo_name" >&2
@@ -327,12 +422,25 @@ build_paths_list() {
         # Get the repo name for path calculation
         repo_name="$(spec_to_repo_name "$repo_no_ref")"
         
+        # Look up reference count for this repo
+        local repo_ref_count=1
+        for i in "${!plan_repo_names[@]}"; do
+          if [ "${plan_repo_names[$i]}" = "$repo_name" ]; then
+            repo_ref_count="${plan_ref_counts[$i]}"
+            break
+          fi
+        done
+        
         # Calculate the path
         if [ -n "$target_dir" ]; then
           repo_path="$parent_dir/$target_dir"
         elif [ -n "$ref" ]; then
-          # Single-branch clone: <repo>-<branch>
-          repo_path="$parent_dir/${repo_name}-${ref}"
+          # Single-branch clone: only append branch if multiple references exist
+          if [ "$repo_ref_count" -gt 1 ]; then
+            repo_path="$parent_dir/${repo_name}-${ref}"
+          else
+            repo_path="$parent_dir/$repo_name"
+          fi
         else
           # Full clone: <repo>
           repo_path="$parent_dir/$repo_name"

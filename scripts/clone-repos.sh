@@ -54,6 +54,7 @@ declare -i CNT_ERRORS=0
 declare -a PLAN_REMOTES=()
 declare -a PLAN_HAS_FULL=()     # 0/1
 declare -a PLAN_BASE_NAME=()    # base directory name (e.g. "projr" or an explicit target)
+declare -a PLAN_REF_COUNT=()    # count of references to this remote (for branch suffix logic)
 
 # Last clone destination (used to set fallback base)
 CLONE_DEST=""
@@ -94,10 +95,13 @@ plan_remember_remote() { # remote https, has_full(0/1), base_name_or_empty
     if [ -n "$base" ] && [ -z "${PLAN_BASE_NAME[$idx]}" ]; then
       PLAN_BASE_NAME[$idx]="$base"
     fi
+    # Increment reference count
+    PLAN_REF_COUNT[$idx]=$((${PLAN_REF_COUNT[$idx]} + 1))
   else
     PLAN_REMOTES+=("$r")
     PLAN_HAS_FULL+=("$has")
     PLAN_BASE_NAME+=("$base")
+    PLAN_REF_COUNT+=("1")
   fi
 }
 
@@ -115,6 +119,11 @@ plan_base_name() { # remote https -> base dir name (fallback to repo name)
   fi
   # default to repo basename from https
   echo "${r##*/}"
+}
+
+plan_ref_count() { # remote https -> reference count (default 0)
+  local idx; idx="$(plan_index "$1")"
+  [ "$idx" -ge 0 ] && echo "${PLAN_REF_COUNT[$idx]}" || echo 0
 }
 
 ensure_base_exists() { # remote https, base_abs_path, debug
@@ -425,15 +434,15 @@ clone_one_repo() {
     [[ "$debug" == true ]] && echo "clone_one_repo: using explicit target_dir, dest='$dest'" >&2
   elif [ -n "$ref" ] ; then
     # Single-branch clone with no explicit target dir:
-    # If we've seen the remote before OR the plan says a full clone exists,
+    # If there are multiple references to this repo (ref_count > 1),
     # put it in <repo>-<branch>; otherwise let it take <repo>.
-    local seen_idx; seen_idx="$(remote_index "$remote_https")"
-    if [ "$seen_idx" -ge 0 ] || [ "$(plan_has_full "$remote_https")" -eq 1 ]; then
+    local ref_count; ref_count="$(plan_ref_count "$remote_https")"
+    if [ "$ref_count" -gt 1 ]; then
       dest="$base_dir/${repo_dir}-${ref}"
-      [[ "$debug" == true ]] && echo "clone_one_repo: single-branch clone (seen before or full planned), dest='$dest'" >&2
+      [[ "$debug" == true ]] && echo "clone_one_repo: single-branch clone (multiple refs: $ref_count), dest='$dest'" >&2
     else
       dest="$base_dir/$repo_dir"
-      [[ "$debug" == true ]] && echo "clone_one_repo: single-branch clone (first time), dest='$dest'" >&2
+      [[ "$debug" == true ]] && echo "clone_one_repo: single-branch clone (single ref), dest='$dest'" >&2
     fi
   else
     # Full clone (no @branch)
@@ -679,9 +688,17 @@ parse_args() {
 
 plan_forward() {
   local file="$1" parent_dir="$2" debug="$3"
-  local line trimmed tok1 tok2 remote_spec remote_https repo ref target is_opt
+  local line trimmed tok1 tok2 remote_spec remote_https repo ref target is_opt no_worktree
+  local current_repo_https fallback_https
+  
+  # Initialize fallback to current repo
+  current_repo_https="$(get_current_repo_remote_https)"
+  fallback_https="$current_repo_https"
+  
   [[ "$debug" == true ]] && echo "Planning from file: $file" >&2
   [[ "$debug" == true ]] && echo "Parent dir for clones: $parent_dir" >&2
+  [[ "$debug" == true ]] && echo "Planning fallback starts as: $fallback_https" >&2
+  
   while IFS= read -r line || [ -n "$line" ]; do
     # trim, strip comments
     [[ "$debug" == true ]] && echo "Planning line: $line" >&2
@@ -695,8 +712,23 @@ plan_forward() {
     tok1="$1"; shift || true
 
     case "$tok1" in
-      @*) # worktree line: no planning change needed
-        continue
+      @*)
+        # Worktree line: count as reference to fallback repo
+        # Check if --no-worktree flag is present
+        no_worktree=0
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            -n|--no-worktree) no_worktree=1 ;;
+          esac
+          shift
+        done
+        
+        # If it's a worktree (not --no-worktree), count it as a reference to fallback
+        if [ "$no_worktree" -eq 0 ]; then
+          [[ "$debug" == true ]] && echo "Planning: worktree on fallback $fallback_https" >&2
+          plan_remember_remote "$fallback_https" 0 ""
+        fi
+        # Note: worktree lines don't change the fallback
         ;;
       *)
         # clone line: owner/repo[@ref] or https url
@@ -724,6 +756,10 @@ plan_forward() {
         else
           plan_remember_remote "$remote_https" 0 ""
         fi
+        
+        # Update fallback for subsequent lines
+        fallback_https="$remote_https"
+        [[ "$debug" == true ]] && echo "Planning: fallback updated to $fallback_https" >&2
         ;;
     esac
   done <"$file"
