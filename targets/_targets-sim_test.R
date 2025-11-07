@@ -7,6 +7,10 @@ targets::tar_option_set(
   # attach packages in targets
   packages = c("ggplot2", "tibble", "projr")
 )
+
+# DESCRIPTION:
+# 
+
 list(
 
   # specify _projr directories
@@ -16,7 +20,7 @@ list(
     cue = tar_cue(mode = "always")
   ),
   tar_target(
-    dir_cache, projr::projr_path_get_dir("cache"),
+    dir_cache, projr::projr_path_get_dir("cache", "sim_test"),
     cue = tar_cue(mode = "always")
   ),
   tar_target(
@@ -46,7 +50,7 @@ list(
       batch_list = batch_list,
       chnl_list = chnl_list,
       fs = chnl_list[[length(chnl_list)]]$fs,
-      path_dir_save = file.path(dir_cache, "plot", "sim_test", "raw")
+      path_dir_save = file.path(dir_cache, "plot", "raw")
     ),
     format = "file"
   ),
@@ -56,22 +60,36 @@ list(
       path_gs = path_gs,
       chnl_list = chnl_list,
       batch_list = batch_list,
-      path_project = file.path(dir_cache, "stimgate", "sim_test")
+      path_project = file.path(dir_cache, "stimgate")
     ),
     format = "file"
   ),
   tar_target(
-    stats_tbl_bs,
-    get_stats_bs(
-      batch_list = batch_list,
-      chnl_list = chnl_list,
+    stats_tbl_bs_stimgate,
+    get_stats_tbl_bs_stimgate(
+      chnl = names(chnl_list),
       path_project = path_project
     )
   ),
   tar_target(
+    stats_tbl_bs_actual,
+    get_stats_bs_actual(
+      batch_list = batch_list,
+      chnl_list = chnl_list
+    )
+  ),
+  tar_target(
+    stats_tbl_bs,
+    stats_tbl_bs_stimgate |>
+      dplyr::inner_join(
+        stats_tbl_bs_actual,
+        by = c("type", "sample_ind", "cyt")
+      )
+  ),
+  tar_target(
     path_plot_corr,
     plot_corr(
-      path_dir_save_base = file.path(dir_cache, "plot", "sim_test", "corr"),
+      path_dir_save_base = file.path(dir_cache, "plot", "corr"),
       stats_tbl_bs = stats_tbl_bs
     ),
     format = "file"
@@ -83,7 +101,7 @@ list(
       path_gs = path_gs,
       path_project = path_project,
       marker = names(chnl_list),
-      path_dir_save_base = file.path(dir_cache, "plot", "sim_test", "stimgate")
+      path_dir_save_base = file.path(dir_cache, "plot", "stimgate")
     ),
     format = "file"
   )

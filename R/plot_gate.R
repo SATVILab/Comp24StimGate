@@ -25,7 +25,7 @@ plot_gate <- function(batch_list,
       unlist(batch_list)
     )
     for (batch in batch_list) {
-      p_grid <- stimgate::plot_gate(
+      p_grid <- stimgate::stimgate_plot(
         ind = batch,
         ind_lab = ind_lab,
         .data = gs,

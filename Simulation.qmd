@@ -13,9 +13,11 @@ for (i in seq_along(fn_vec_r)) {
 
 ## HDCytoData
 
+Here we have a test pipeline, that loads a flowSet, converts it to a GatingSet, runs stimgate, extracts statistics versus 
+
 ```{r}
 Sys.setenv("TAR_PROJECT" = "sim_test")
-targets::tar_make()
+targets::tar_make(callr_function = NULL)
 ```
 
 ```{r}

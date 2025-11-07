@@ -9,7 +9,7 @@ plot_corr <- function(path_dir_save_base,
     path_p <- file.path(path_dir_save_base, paste0("p-", set_zero, ".png"))
     plot_tbl <- stats_tbl_bs |>
       tidyr::pivot_longer(
-        cols = c("prop_bs_actual", "prop_bs_gate"),
+        cols = c("prop_bs_actual", "prop_bs_stimgate"),
         names_to = "grp",
         values_to = "prop_bs"
       )
@@ -24,7 +24,7 @@ plot_corr <- function(path_dir_save_base,
     p <- UtilsGGSV::ggcorr(
       data = plot_tbl |>
         dplyr::mutate(
-          id = paste0(sample_ind, "-", cyt_combn)
+          id = paste0(sample_ind, "-", cyt)
         ),
       grp = c("grp"),
       y = "prop_bs",
@@ -51,14 +51,14 @@ plot_corr <- function(path_dir_save_base,
       units = "cm",
       dpi = 300
     )
-    cmbn_vec <- unique(plot_tbl$cyt_combn)
+    cmbn_vec <- unique(plot_tbl$cyt)
     for (cmbn in cmbn_vec) {
       path_p <- file.path(
         path_dir_save_base,
         paste0("p-", set_zero, "-", cmbn, ".png")
       )
       plot_tbl_cmbn <- plot_tbl |>
-        dplyr::filter(cyt_combn == cmbn)
+        dplyr::filter(cyt == cmbn)
       p <- UtilsGGSV::ggcorr(
         data = plot_tbl_cmbn,
         grp = c("grp"),

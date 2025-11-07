@@ -4,6 +4,9 @@ get_gatingset <- function(fs,
   fs2 <- flowCore::flowSet(frames = frames_list)
   gs <- flowWorkspace::GatingSet(fs2)
   path_save <- file.path(dir_cache, "gs")
+  if (dir.exists(path_save)) {
+    unlink(path_save, recursive = TRUE)
+  }
   flowWorkspace::save_gs(
     gs,
     path = path_save

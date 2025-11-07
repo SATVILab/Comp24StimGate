@@ -61,7 +61,6 @@ list(
         ))
 
         # get stats from stimgate
-
         stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
           path_project, chnl = names(sim_data$chnl_list)
         )

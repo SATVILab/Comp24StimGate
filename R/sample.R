@@ -45,7 +45,6 @@ sample_chnl <- function(fs,
     prop_pos = rep(NA_real_, length(fs)),
   )
   for (i in seq_along(batch_list)) {
-
     ind_uns <- batch_list[[i]][length(batch_list[[i]])]
     ind_stim_vec <- setdiff(batch_list[[i]], ind_uns)
     for (ind_stim in ind_stim_vec) {

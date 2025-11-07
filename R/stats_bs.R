@@ -26,7 +26,8 @@ get_stats_bs_actual <- function(batch_list,
     )
 }
 
-get_stats_bs_actual_combn <- function(batch_list, chnl_list) {
+get_stats_bs_actual_combn <- function(batch_list,
+                                      chnl_list) {
   pos_vec_sample <- lapply(batch_list, function(x) x[-length(x)]) |>
     unlist()
   calc_resp_combn(chnl_list = chnl_list) |>
@@ -41,7 +42,8 @@ get_stats_bs_actual_combn <- function(batch_list, chnl_list) {
     dplyr::rename(cyt = cyt_combn)
 }
 
-get_stats_tbl_bs_stimgate <- function(path_project, chnl) {
+get_stats_tbl_bs_stimgate <- function(path_project,
+                                      chnl) {
   stats_tbl_combn <- get_stats_bs_stimgate_combn(path_project)
   stats_tbl_single <- get_stats_bs_single(
     stats_bs_combn = stats_tbl_combn,
