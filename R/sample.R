@@ -1,11 +1,29 @@
+# Simulate cytokine expression data for multiple channels sequentially.
+# This is the main orchestrator that processes a list of channel specifications,
+# simulating expression data for each channel while carrying forward the updated
+# flowSet to the next channel.
+#
+# Arguments:
+#   args_list - Named list where each element contains simulation parameters for one channel
+#   fs - Initial flowSet to use as template
+#
+# Returns:
+#   A named list with one element per channel, each containing:
+#     - fs: updated flowSet with simulated expression
+#     - ind_list: indices of positive cells per sample
+#     - resp_tbl: metadata about proportions and cell counts
+#     - batch_list: batch groupings
 sample_chnls <- function(args_list,
                          fs) {
+  # Initialize output list with channel names
   chnl_obj_list <- lapply(seq_along(args_list), function(x) NULL) |>
     stats::setNames(names(args_list))
+  # Process each channel sequentially
   for (i in seq_along(args_list)) {
     args <- args_list[[i]]
-    # use updated flowSet
+    # Use the most recently updated flowSet
     args$fs <- fs
+    # Simulate this channel
     chnl_obj_list[[i]] <- sample_chnl(
       fs = args$fs,
       batch_list = args$batch_list,
@@ -19,12 +37,35 @@ sample_chnls <- function(args_list,
       expr_sd_pos = args$expr_sd_pos,
       expr_sd_neg = args$expr_sd_neg
     )
-    # update flowSet
+    # Carry forward updated flowSet to next channel
     fs <- chnl_obj_list[[i]]$fs
   }
   chnl_obj_list
 }
 
+# Simulate cytokine expression data for a single channel across all samples.
+# Generates bimodal expression data (positive and negative populations) for each
+# sample in the flowSet, with different parameters for stimulated vs unstimulated.
+#
+# Arguments:
+#   fs - flowSet to modify with simulated data
+#   batch_list - List defining which sample indices belong to each batch
+#   chnl - Name of the channel/marker to simulate
+#   prop_mean_pos - Mean proportion of positive cells in stimulated samples
+#   prop_sd_pos - SD of positive proportion in stimulated samples
+#   prop_mean_neg - Mean proportion of positive cells in unstimulated samples
+#   prop_sd_neg - SD of positive proportion in unstimulated (default: same as prop_sd_pos)
+#   expr_mean_neg - Mean expression value for negative cells
+#   expr_mean_pos - Mean expression value for positive cells
+#   expr_sd_pos - SD of expression for positive cells
+#   expr_sd_neg - SD of expression for negative cells (default: same as expr_sd_pos)
+#
+# Returns:
+#   A list containing:
+#     - fs: flowSet with updated expression values for this channel
+#     - ind_list: list of indices identifying positive cells in each sample
+#     - resp_tbl: tibble with metadata (batch, n_cell, prop_pos per sample)
+#     - batch_list: the input batch_list (passed through)
 sample_chnl <- function(fs,
                         batch_list,
                         chnl,
@@ -36,7 +77,9 @@ sample_chnl <- function(fs,
                         expr_mean_pos,
                         expr_sd_pos,
                         expr_sd_neg = NULL) {
+  # Initialize storage for positive cell indices
   ind_list <- lapply(seq_along(fs), function(x) NULL)
+  # Initialize response tibble to track simulation outcomes
   resp_tbl <- tibble::tibble(
     chnl = chnl,
     sample_ind = seq_along(fs),
@@ -44,13 +87,18 @@ sample_chnl <- function(fs,
     n_cell = rep(NA_integer_, length(fs)),
     prop_pos = rep(NA_real_, length(fs)),
   )
+  # Process each batch
   for (i in seq_along(batch_list)) {
+    # Last sample in each batch is unstimulated
     ind_uns <- batch_list[[i]][length(batch_list[[i]])]
+    # Other samples are stimulated
     ind_stim_vec <- setdiff(batch_list[[i]], ind_uns)
+    # Process stimulated samples
     for (ind_stim in ind_stim_vec) {
       fr_stim <- fs[[ind_stim]]
       ex_mat_stim <- flowCore::exprs(fr_stim)
       n_cell_stim <- nrow(ex_mat_stim)
+      # Generate simulated response for stimulated sample
       response_stim <- sample_response(
         n = n_cell_stim,
         prop_mean = prop_mean_pos,
@@ -60,18 +108,23 @@ sample_chnl <- function(fs,
         expr_sd_pos = expr_sd_pos,
         expr_sd_neg = expr_sd_neg
       )
+      # Update expression values in flowFrame
       ex_mat_stim[, chnl] <- response_stim$expr_vec
       flowCore::exprs(fr_stim) <- ex_mat_stim
       fs[[ind_stim]] <- fr_stim
+      # Record metadata
       resp_tbl$batch[ind_stim] <- i
       resp_tbl$n_cell[ind_stim] <- nrow(ex_mat_stim)
       resp_tbl$prop_pos[ind_stim] <- response_stim$n_pos / n_cell_stim
       ind_list[[ind_stim]] <- response_stim$ind_pos
     }
+    # Process unstimulated sample
     fr_uns <- fs[[ind_uns]]
     ex_mat_uns <- flowCore::exprs(fr_uns)
     n_cell_uns <- nrow(ex_mat_uns)
+    # Use same SD as stimulated if not specified
     prop_sd_neg <- if (is.null(prop_sd_neg)) prop_sd_pos else prop_sd_neg
+    # Generate simulated response for unstimulated sample
     response_uns <- sample_response(
       n = n_cell_uns,
       prop_mean = prop_mean_neg,
@@ -81,14 +134,17 @@ sample_chnl <- function(fs,
       expr_sd_pos = expr_sd_pos,
       expr_sd_neg = expr_sd_neg   
     )
+    # Update expression values
     ex_mat_uns[, chnl] <- response_uns$expr_vec
     flowCore::exprs(fr_uns) <- ex_mat_uns
     fs[[ind_uns]] <- fr_uns
+    # Record metadata
     resp_tbl$batch[ind_uns] <- i
     resp_tbl$n_cell[ind_uns] <- nrow(ex_mat_uns)
     resp_tbl$prop_pos[ind_uns] <- response_uns$n_pos / n_cell_uns
     ind_list[[ind_uns]] <- response_uns$ind_pos
   }
+  # Return all components
   list(
     fs = fs,
     ind_list = ind_list,
@@ -98,7 +154,24 @@ sample_chnl <- function(fs,
 }
 
 
-
+# Generate a simulated response (positive cells and expression values) for one sample.
+# This is a helper function that orchestrates the sampling of positive cell count,
+# indices, and expression values.
+#
+# Arguments:
+#   n - Total number of cells in the sample
+#   prop_mean - Mean proportion of positive cells
+#   prop_sd - SD of positive proportion
+#   expr_mean_neg - Mean expression for negative cells
+#   expr_mean_pos - Mean expression for positive cells
+#   expr_sd_pos - SD of expression for positive cells
+#   expr_sd_neg - SD of expression for negative cells (default: same as expr_sd_pos)
+#
+# Returns:
+#   A list containing:
+#     - n_pos: number of positive cells
+#     - ind_pos: indices of positive cells
+#     - expr_vec: vector of expression values for all cells
 sample_response <- function(n,
                             prop_mean,
                             prop_sd,
@@ -106,12 +179,15 @@ sample_response <- function(n,
                             expr_mean_pos,
                             expr_sd_pos,
                             expr_sd_neg = NULL) {
+  # Sample number of positive cells from beta distribution
   n_pos <- sample_n_pos(
     n = n,
     prop_mean = prop_mean,
     prop_sd = prop_sd
   )
+  # Randomly select which cells are positive
   ind_pos <- sample_ind_pos(n = n, n_cell_pos = n_pos)
+  # Generate expression values for positive and negative cells
   expr_vec <- sample_expr(
     n = n,
     n_pos = n_pos,
@@ -127,21 +203,57 @@ sample_response <- function(n,
     expr_vec = expr_vec
   )
 }
+
+# Sample the number of positive cells using a beta distribution.
+# The beta distribution is parameterized to achieve the desired mean proportion
+# and variance, while constraining the SD to be valid for a proportion.
+#
+# Arguments:
+#   n - Total number of cells
+#   prop_mean - Desired mean proportion of positive cells
+#   prop_sd - Desired SD of positive proportion
+#   eps - Small value to ensure prop_sd < theoretical maximum (default: 1e-8)
+#
+# Returns:
+#   Integer count of positive cells (rounded from beta-sampled proportion * n)
 sample_n_pos <- function(n, prop_mean, prop_sd, eps = 1e-8) {
   # Compute the maximum SD and force prop_sd < max_sd
   max_sd <- sqrt(prop_mean * (1 - prop_mean))
   prop_sd <- min(prop_sd, max_sd * (1 - eps))
-  
+  # Convert mean and SD to beta distribution parameters
   nu    <- prop_mean * (1 - prop_mean) / prop_sd^2 - 1
   alpha <- prop_mean * nu
   beta  <- (1 - prop_mean) * nu
-  
+  # Sample proportion and convert to cell count
   round(n * rbeta(n = 1, shape1 = alpha, shape2 = beta))
 }
 
+# Randomly select indices of positive cells from the total cell population.
+#
+# Arguments:
+#   n - Total number of cells
+#   n_cell_pos - Number of positive cells to select
+#
+# Returns:
+#   Integer vector of indices for positive cells
 sample_ind_pos <- function(n, n_cell_pos) {
   sample.int(n, n_cell_pos)
 }
+
+# Generate expression values for positive and negative cell populations.
+# Draws values from normal distributions with specified means and SDs.
+#
+# Arguments:
+#   n - Total number of cells
+#   n_pos - Number of positive cells
+#   ind_pos - Indices of positive cells
+#   mean_neg - Mean expression for negative cells
+#   mean_pos - Mean expression for positive cells
+#   sd_pos - SD of expression for positive cells
+#   sd_neg - SD of expression for negative cells (default: same as sd_pos)
+#
+# Returns:
+#   Numeric vector of expression values for all n cells
 sample_expr <- function(n,
                         n_pos,
                         ind_pos,
@@ -151,10 +263,11 @@ sample_expr <- function(n,
                         sd_neg = NULL) {
   n_neg <- n - n_pos
   expr_vec <- rep(NA_real_, n)
-  # only simulate when group has members
+  # Generate expression values for positive cells if any exist
   if (n_pos > 0) {
     expr_vec[ind_pos] <- rnorm(n_pos, mean = mean_pos, sd = sd_pos)
   }
+  # Generate expression values for negative cells if any exist
   if (n_neg > 0) {
     if (is.null(sd_neg)) {
       sd_neg <- sd_pos
@@ -165,12 +278,32 @@ sample_expr <- function(n,
   expr_vec
 }
 
+# Calculate actual proportions for all marker combinations from simulated data.
+# This function computes the proportion of cells positive for each possible combination
+# of marker positivity/negativity patterns (e.g., BC1+BC2+, BC1+BC2-, etc.).
+#
+# Arguments:
+#   chnl_list - List of channel objects containing ind_list (positive cell indices)
+#
+# Returns:
+#   A tibble with columns:
+#     - n_pos_chnl: number of positive markers in this combination
+#     - chnl: marker combination string (e.g., "BC1(La139)Dd~+~BC2(Pr141)Dd~-~")
+#     - batch: batch number
+#     - sample_ind: sample index
+#     - n_cell: total cells in sample
+#     - ind: list of indices for cells matching this combination
+#     - prop_pos: proportion of cells matching this combination
+#     - prop_bs: background-subtracted proportion (stim - unstim)
 calc_resp_combn <- function(chnl_list) {
+  # Get all possible positive/negative combinations
   combn_pos_list <- calc_resp_combn_get_combn_pos(chnl_list)
+  # Calculate proportions for each combination
   resp_tbl <- lapply(combn_pos_list, function(chnl_pos) {
     calc_resp_combn_ind(chnl_pos, chnl_list)
   }) |>
     dplyr::bind_rows()
+  # Add background subtraction and metadata
   resp_tbl |>
     dplyr::group_by(chnl, batch) |>
     dplyr::mutate(
@@ -185,13 +318,23 @@ calc_resp_combn <- function(chnl_list) {
       everything()
     )
  }
+
+# Generate all possible marker combinations (positive/negative patterns).
+# For n markers, generates 2^n combinations (including all-negative).
+#
+# Arguments:
+#   chnl_list - List of channel objects
+#
+# Returns:
+#   A list where each element is a character vector of marker names that are
+#   positive in that combination
 calc_resp_combn_get_combn_pos <- function(chnl_list) {
   chnl_vec <- names(chnl_list)
-  # get combinations
+  # Get combinations for each number of positive markers (0 to n)
   combn_mat_list_pos_init <- lapply(seq_along(chnl_vec), function(n_pos) {
     utils::combn(chnl_vec, m = n_pos, simplify = FALSE)
   })
-  # flatten it
+  # Flatten nested list
   combn_mat_list_pos <- list()
   for (i in seq_along(combn_mat_list_pos_init)) {
     combn_mat_list_pos_init_curr <- combn_mat_list_pos_init[[i]]
@@ -202,35 +345,47 @@ calc_resp_combn_get_combn_pos <- function(chnl_list) {
   }
   combn_mat_list_pos
 }
+
+# Calculate proportion for a specific marker combination pattern.
+# Finds cells that are positive for specified markers AND negative for all others.
+#
+# Arguments:
+#   chnl_pos - Character vector of markers that should be positive
+#   chnl_list - List of channel objects containing ind_list
+#
+# Returns:
+#   A tibble with proportion of cells matching this exact combination pattern
 calc_resp_combn_ind <- function(chnl_pos, chnl_list) {
+  # Identify negative markers
   chnl_neg <- setdiff(names(chnl_list), chnl_pos)
   chnl_pos_ind <- which(names(chnl_list) %in% chnl_pos)
+  # Build combination name string
   sign_ind <- rep("~-~", length(chnl_list))
   sign_ind[chnl_pos_ind] <- "~+~"
   combn_nm <- paste0(names(chnl_list), sign_ind, collapse = "")
   n_sample <- length(chnl_list[[chnl_pos[1]]]$ind_list)
-  # get resp_tbl as a scaffold
+  # Use resp_tbl from first channel as scaffold
   resp_tbl <- chnl_list[[chnl_pos[1]]]$resp_tbl
   resp_tbl$chnl <- combn_nm
   ind_list_pos <- lapply(seq_len(n_sample), function(x) NULL)
+  # For each sample, find cells matching this combination
   for (i in seq_len(n_sample)) {
-    # get indices for each channel for this sample
+    # Get positive cell indices for each channel in this sample
     ind_list_sample <- lapply(seq_along(chnl_list), function(chnl) {
       chnl_list[[chnl]]$ind_list[[i]]
     }) |>
       stats::setNames(names(chnl_list))
-    # get indices for positive channels
+    # Find cells positive for ALL required markers (intersection)
     pos_vec_ind <- Reduce(intersect, lapply(chnl_pos, function(chnl) {
       ind_list_sample[[chnl]]
     }))
-    # no need to remove negative indices if nothing was positive
+    # Remove cells that are positive for any negative markers
     if (length(chnl_neg) > 0L && length(pos_vec_ind) > 0L) {
-      # union as we remove if any negative indices
-      # were present in the positive indices
+      # Union of negative markers (remove if positive for ANY)
       neg_vec_ind <- Reduce(union, lapply(chnl_neg, function(chnl) {
         ind_list_sample[[chnl]]
       }))
-      # remove negative indices from positive indices
+      # Subtract negative indices from positive
       pos_vec_ind <- setdiff(pos_vec_ind, neg_vec_ind)
     }
     ind_list_pos[[i]] <- pos_vec_ind

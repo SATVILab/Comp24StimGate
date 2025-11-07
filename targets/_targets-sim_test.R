@@ -1,5 +1,6 @@
 # _targets.R file
 library(targets)
+# Source all helper functions from R/ directory
 for (x in list.files(here::here("R"), pattern = "R$|r$", full.names = TRUE)) {
   source(x)
 }
@@ -9,12 +10,24 @@ targets::tar_option_set(
 )
 
 # DESCRIPTION:
-# 
+# This is the sim_test targets pipeline - a minimal workflow demonstrating StimGate
+# gating on simulated flow cytometry data. The pipeline:
+# 1. Loads a base flowSet from HDCytoData
+# 2. Generates simulated cytokine expression for BC1 and BC2 markers
+# 3. Creates a GatingSet for StimGate analysis
+# 4. Plots raw expression distributions
+# 5. Runs StimGate automated gating
+# 6. Computes bootstrap statistics comparing actual vs StimGate-estimated proportions
+# 7. Generates correlation plots and gating visualizations
+#
+# This pipeline should always complete successfully and serves as the first validation
+# after environment setup.
 
 list(
 
   # specify _projr directories
   # ------------------
+  # Get project directories from projr configuration
   tar_target(
     dir_raw_data, projr::projr_path_get_dir("raw-data"),
     cue = tar_cue(mode = "always")
@@ -34,16 +47,28 @@ list(
 
   # do something
   # ------------------
+  # Load base flowSet from HDCytoData (Bodenmiller BCR-XL dataset)
   tar_target(fs, get_fs()),
+  
+  # Generate simulated cytokine data for BC1 and BC2 channels
+  # Returns a list where each element contains fs, ind_list, resp_tbl, batch_list
   tar_target(chnl_list, get_chnl_list(fs = fs)),
+  
+  # Extract batch groupings (which samples belong to each batch)
   tar_target(batch_list, chnl_list[[1]]$batch_list),
+  
+  # Extract the final flowSet with all simulated channels
   tar_target(fs_gate, chnl_list[[length(chnl_list)]]$fs),
+  
+  # Create and save GatingSet from the simulated flowSet
   tar_target(path_gs, get_gatingset(
     fs = chnl_list[[length(chnl_list)]]$fs,
     dir_cache = dir_cache
   ),
   format = "file"
   ),
+  
+  # Plot raw expression densities for each marker (stimulated vs unstimulated)
   tar_target(
     path_plot_raw,
     plot_raw(
@@ -54,6 +79,8 @@ list(
     ),
     format = "file"
   ),
+  
+  # Run StimGate automated gating and save results
   tar_target(
     path_project,
     gate(
@@ -64,6 +91,9 @@ list(
     ),
     format = "file"
   ),
+  
+  # Extract bootstrap statistics from StimGate results
+  # Includes single-marker, combination, and any-positive proportions
   tar_target(
     stats_tbl_bs_stimgate,
     get_stats_tbl_bs_stimgate(
@@ -71,6 +101,8 @@ list(
       path_project = path_project
     )
   ),
+  
+  # Compute actual (ground truth) bootstrap statistics from simulation
   tar_target(
     stats_tbl_bs_actual,
     get_stats_bs_actual(
@@ -78,6 +110,8 @@ list(
       chnl_list = chnl_list
     )
   ),
+  
+  # Join StimGate and actual statistics for comparison
   tar_target(
     stats_tbl_bs,
     stats_tbl_bs_stimgate |>
@@ -86,6 +120,8 @@ list(
         by = c("type", "sample_ind", "cyt")
       )
   ),
+  
+  # Plot correlation between StimGate and actual proportions
   tar_target(
     path_plot_corr,
     plot_corr(
@@ -94,6 +130,8 @@ list(
     ),
     format = "file"
   ),
+  
+  # Plot StimGate gates overlaid on bivariate scatter plots
   tar_target(
     path_plot_gate,
     plot_gate(

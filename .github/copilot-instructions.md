@@ -10,6 +10,60 @@
 
 - `_targets-sim_test.R`: a minimal gating and plotting workflow that loads a small flowSet from `HDCytoData`, converts it to a GatingSet, runs StimGate, and plots bootstrap statistics for cytokine-positive proportions. This should always complete successfully and is the first pipeline to validate after setting up the environment.
 
+### sim_test Pipeline Details
+
+The `sim_test` pipeline demonstrates StimGate's automated gating on simulated flow cytometry data. It consists of the following stages:
+
+#### 1. Data Loading and Simulation
+- **get_fs()** (R/fs.R): Downloads the Bodenmiller BCR-XL flowSet from HDCytoData as a template
+- **get_chnl_list(fs)** (R/chnl_list.R): Generates simulated cytokine expression for two markers (BC1 and BC2):
+  - BC1: 5% mean positive proportion with strong separation (expr_mean_pos = 2)
+  - BC2: 1% mean positive proportion with strong separation (expr_mean_pos = 2)
+  - Creates 8 batches, each with 2 samples (1 stimulated + 1 unstimulated)
+  - Calls **sample_chnls()** (R/sample.R) which sequentially simulates each channel
+  - **sample_chnl()** (R/sample.R) generates bimodal expression (positive/negative populations) using beta-distributed proportions
+
+#### 2. GatingSet Creation
+- **get_gatingset(fs, dir_cache)** (R/gatingset.R): Converts the simulated flowSet to a GatingSet and saves to cache directory
+
+#### 3. Visualization of Raw Data
+- **plot_raw(batch_list, chnl_list, fs, path_dir_save)** (R/plot_raw.R): Creates density plots showing expression distributions for stimulated vs unstimulated samples, faceted by batch
+
+#### 4. Automated Gating
+- **gate(chnl_list, batch_list, path_gs, path_project)** (R/gate.R): Runs StimGate's automated gating algorithm, which:
+  - Accounts for batch effects
+  - Subtracts unstimulated background
+  - Determines optimal gates for each marker
+  - Saves gates and statistics to path_project
+
+#### 5. Statistics Computation
+- **get_stats_tbl_bs_stimgate(path_project, chnl)** (R/stats_bs.R): Extracts StimGate-estimated proportions for:
+  - Single markers (e.g., BC1+)
+  - Combinations (e.g., BC1+BC2+, BC1+BC2-)
+  - Any-positive (at least one marker positive)
+- **get_stats_bs_actual(batch_list, chnl_list)** (R/stats_bs.R): Computes ground truth proportions from the known positive cell indices in the simulation
+- Both functions use helper utilities:
+  - **get_stats_bs_single()**: Marginalizes combination statistics to single markers
+  - **get_stats_bs_any()**: Computes any-positive statistics
+
+#### 6. Validation Plots
+- **plot_corr(path_dir_save_base, stats_tbl_bs)** (R/plot_corr.R): Creates correlation plots comparing StimGate estimates vs actual proportions, showing concordance, Pearson, and Spearman correlations
+- **plot_gate(batch_list, path_gs, path_project, marker, path_dir_save_base)** (R/plot_gate.R): Generates bivariate scatter plots with StimGate gates overlaid for each marker pair and batch
+
+#### Key Data Structures
+- **chnl_list**: A named list (one element per channel) where each element contains:
+  - `fs`: flowSet with simulated expression values
+  - `ind_list`: indices of positive cells in each sample
+  - `resp_tbl`: metadata (batch, n_cell, prop_pos per sample)
+  - `batch_list`: grouping of samples into batches
+- **batch_list**: List of integer vectors, each defining sample indices in a batch (last index is always unstimulated)
+- **stats_tbl_bs**: Tibble joining StimGate and actual statistics with columns:
+  - `type`: "single", "combn", or "any"
+  - `cyt`: marker combination string (e.g., "BC1(La139)Dd~+~BC2(Pr141)Dd~-~")
+  - `sample_ind`: sample index
+  - `prop_bs_stimgate`: StimGate-estimated background-subtracted proportion
+  - `prop_bs_actual`: actual (ground truth) background-subtracted proportion
+
 ## Environment and dependencies
 
 - Always work with an R installation that can satisfy `renv`. `renv/settings.json` pins Bioconductor 3.20; match this with R ≥ 4.4 to avoid resolver errors.
