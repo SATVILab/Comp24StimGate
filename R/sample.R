@@ -1,11 +1,29 @@
+# Simulate cytokine expression data for multiple channels sequentially.
+# This is the main orchestrator that processes a list of channel specifications,
+# simulating expression data for each channel while carrying forward the updated
+# flowSet to the next channel.
+#
+# Arguments:
+#   args_list - Named list where each element contains simulation parameters for one channel
+#   fs - Initial flowSet to use as template
+#
+# Returns:
+#   A named list with one element per channel, each containing:
+#     - fs: updated flowSet with simulated expression
+#     - ind_list: indices of positive cells per sample
+#     - resp_tbl: metadata about proportions and cell counts
+#     - batch_list: batch groupings
 sample_chnls <- function(args_list,
                          fs) {
+  # Initialize output list with channel names
   chnl_obj_list <- lapply(seq_along(args_list), function(x) NULL) |>
     stats::setNames(names(args_list))
+  # Process each channel sequentially
   for (i in seq_along(args_list)) {
     args <- args_list[[i]]
-    # use updated flowSet
+    # Use the most recently updated flowSet
     args$fs <- fs
+    # Simulate this channel
     chnl_obj_list[[i]] <- sample_chnl(
       fs = args$fs,
       batch_list = args$batch_list,
@@ -19,12 +37,35 @@ sample_chnls <- function(args_list,
       expr_sd_pos = args$expr_sd_pos,
       expr_sd_neg = args$expr_sd_neg
     )
-    # update flowSet
+    # Carry forward updated flowSet to next channel
     fs <- chnl_obj_list[[i]]$fs
   }
   chnl_obj_list
 }
 
+# Simulate cytokine expression data for a single channel across all samples.
+# Generates bimodal expression data (positive and negative populations) for each
+# sample in the flowSet, with different parameters for stimulated vs unstimulated.
+#
+# Arguments:
+#   fs - flowSet to modify with simulated data
+#   batch_list - List defining which sample indices belong to each batch
+#   chnl - Name of the channel/marker to simulate
+#   prop_mean_pos - Mean proportion of positive cells in stimulated samples
+#   prop_sd_pos - SD of positive proportion in stimulated samples
+#   prop_mean_neg - Mean proportion of positive cells in unstimulated samples
+#   prop_sd_neg - SD of positive proportion in unstimulated (default: same as prop_sd_pos)
+#   expr_mean_neg - Mean expression value for negative cells
+#   expr_mean_pos - Mean expression value for positive cells
+#   expr_sd_pos - SD of expression for positive cells
+#   expr_sd_neg - SD of expression for negative cells (default: same as expr_sd_pos)
+#
+# Returns:
+#   A list containing:
+#     - fs: flowSet with updated expression values for this channel
+#     - ind_list: list of indices identifying positive cells in each sample
+#     - resp_tbl: tibble with metadata (batch, n_cell, prop_pos per sample)
+#     - batch_list: the input batch_list (passed through)
 sample_chnl <- function(fs,
                         batch_list,
                         chnl,
@@ -36,7 +77,9 @@ sample_chnl <- function(fs,
                         expr_mean_pos,
                         expr_sd_pos,
                         expr_sd_neg = NULL) {
+  # Initialize storage for positive cell indices
   ind_list <- lapply(seq_along(fs), function(x) NULL)
+  # Initialize response tibble to track simulation outcomes
   resp_tbl <- tibble::tibble(
     chnl = chnl,
     sample_ind = seq_along(fs),
@@ -44,13 +87,18 @@ sample_chnl <- function(fs,
     n_cell = rep(NA_integer_, length(fs)),
     prop_pos = rep(NA_real_, length(fs)),
   )
+  # Process each batch
   for (i in seq_along(batch_list)) {
+    # Last sample in each batch is unstimulated
     ind_uns <- batch_list[[i]][length(batch_list[[i]])]
+    # Other samples are stimulated
     ind_stim_vec <- setdiff(batch_list[[i]], ind_uns)
+    # Process stimulated samples
     for (ind_stim in ind_stim_vec) {
       fr_stim <- fs[[ind_stim]]
       ex_mat_stim <- flowCore::exprs(fr_stim)
       n_cell_stim <- nrow(ex_mat_stim)
+      # Generate simulated response for stimulated sample
       response_stim <- sample_response(
         n = n_cell_stim,
         prop_mean = prop_mean_pos,
@@ -60,18 +108,23 @@ sample_chnl <- function(fs,
         expr_sd_pos = expr_sd_pos,
         expr_sd_neg = expr_sd_neg
       )
+      # Update expression values in flowFrame
       ex_mat_stim[, chnl] <- response_stim$expr_vec
       flowCore::exprs(fr_stim) <- ex_mat_stim
       fs[[ind_stim]] <- fr_stim
+      # Record metadata
       resp_tbl$batch[ind_stim] <- i
       resp_tbl$n_cell[ind_stim] <- nrow(ex_mat_stim)
       resp_tbl$prop_pos[ind_stim] <- response_stim$n_pos / n_cell_stim
       ind_list[[ind_stim]] <- response_stim$ind_pos
     }
+    # Process unstimulated sample
     fr_uns <- fs[[ind_uns]]
     ex_mat_uns <- flowCore::exprs(fr_uns)
     n_cell_uns <- nrow(ex_mat_uns)
+    # Use same SD as stimulated if not specified
     prop_sd_neg <- if (is.null(prop_sd_neg)) prop_sd_pos else prop_sd_neg
+    # Generate simulated response for unstimulated sample
     response_uns <- sample_response(
       n = n_cell_uns,
       prop_mean = prop_mean_neg,
@@ -81,14 +134,17 @@ sample_chnl <- function(fs,
       expr_sd_pos = expr_sd_pos,
       expr_sd_neg = expr_sd_neg   
     )
+    # Update expression values
     ex_mat_uns[, chnl] <- response_uns$expr_vec
     flowCore::exprs(fr_uns) <- ex_mat_uns
     fs[[ind_uns]] <- fr_uns
+    # Record metadata
     resp_tbl$batch[ind_uns] <- i
     resp_tbl$n_cell[ind_uns] <- nrow(ex_mat_uns)
     resp_tbl$prop_pos[ind_uns] <- response_uns$n_pos / n_cell_uns
     ind_list[[ind_uns]] <- response_uns$ind_pos
   }
+  # Return all components
   list(
     fs = fs,
     ind_list = ind_list,

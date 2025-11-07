@@ -1,21 +1,39 @@
+# Extract actual (ground truth) bootstrap statistics from simulated data.
+# Computes background-subtracted proportions for single markers, combinations,
+# and any-positive populations based on the known positive cell indices from simulation.
+#
+# Arguments:
+#   batch_list - List defining which sample indices belong to each batch
+#   chnl_list - List of channel objects containing simulated data and indices
+#
+# Returns:
+#   A tibble with columns:
+#     - type: "single", "combn", or "any" 
+#     - cyt: cytokine/marker combination string (e.g., "BC1(La139)Dd~+~BC2(Pr141)Dd~-~")
+#     - sample_ind: sample index
+#     - prop_bs_actual: actual background-subtracted proportion
 get_stats_bs_actual <- function(batch_list,
                                 chnl_list) {
+  # Get combination-level statistics (all marker combinations)
   stats_tbl_combn <- get_stats_bs_actual_combn(
     batch_list = batch_list,
     chnl_list = chnl_list
   )
+  # Derive single-marker statistics by marginalizing over other markers
   stats_tbl_single <- get_stats_bs_single(
     stats_bs_combn = stats_tbl_combn,
     chnl = names(chnl_list),
     grp = c("type", "sample_ind"),
     resp = "prop_bs_actual"
   )
+  # Derive any-positive statistics (positive for any marker)
   stats_tbl_any <- get_stats_bs_any(
     stats_bs_combn = stats_tbl_combn,
     chnl = names(chnl_list),
     grp = c("type", "sample_ind"),
     resp = "prop_bs_actual"
   )
+  # Combine all three types
   stats_tbl_any |>
     dplyr::bind_rows(
       stats_tbl_single
@@ -42,21 +60,39 @@ get_stats_bs_actual_combn <- function(batch_list,
     dplyr::rename(cyt = cyt_combn)
 }
 
+# Extract StimGate bootstrap statistics from the gating results.
+# Retrieves proportions estimated by StimGate and derives single-marker and 
+# any-positive statistics from the combination data.
+#
+# Arguments:
+#   path_project - Directory where StimGate saved its results
+#   chnl - Vector of channel/marker names
+#
+# Returns:
+#   A tibble with columns:
+#     - type: "single", "combn", or "any"
+#     - cyt: cytokine/marker combination string
+#     - sample_ind: sample index
+#     - prop_bs_stimgate: StimGate-estimated background-subtracted proportion
 get_stats_tbl_bs_stimgate <- function(path_project,
                                       chnl) {
+  # Get combination-level statistics from StimGate output
   stats_tbl_combn <- get_stats_bs_stimgate_combn(path_project)
+  # Derive single-marker statistics
   stats_tbl_single <- get_stats_bs_single(
     stats_bs_combn = stats_tbl_combn,
     chnl = chnl,
     grp = c("type", "sample_ind"),
     resp = "prop_bs_stimgate"
   )
+  # Derive any-positive statistics
   stats_tbl_any <- get_stats_bs_any(
     stats_bs_combn = stats_tbl_combn,
     chnl = chnl,
     grp = c("type", "sample_ind"),
     resp = "prop_bs_stimgate"
   )
+  # Combine all three types
   stats_tbl_any |>
     dplyr::bind_rows(
       stats_tbl_single
