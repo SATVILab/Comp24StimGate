@@ -18,12 +18,12 @@
 - The repo relies on Quarto. Install the CLI (`quarto --version`) before running notebooks; missing Quarto causes build failures when knitting `.qmd` files.
 
 ## Build, validation, and common workflows
-1. **Bootstrap/setup**
-   - After `renv::restore()`, run `Rscript -e 'projr::projr_install()'` if prompted to link project directories defined in `_projr.yml`. This only needs to be done once per machine.
+1. **Bootstrap/setup**     
+   - After `renv::restore()`, run `Rscript -e 'projr::projr_restore()'` if prompted to link project directories defined in `_projr.yml`. This only needs to be done once per machine.
 2. **Build notebooks**
    - Always call `Rscript -e 'projr::projr_build_dev()'` from the repo root. `projr` executes every Quarto file in the root directory with a clean project context, automatically setting up `_targets.yaml` targets and writing rendered HTML into `docs/`.
-   - Precondition: `_data_raw` and other directories referenced in `_projr.yml` exist (they may be empty). If they are missing, create them to avoid `projr_path_get_dir` errors.
-   - Postcondition: fresh outputs populate `_tmp/`, `_output/`, and `docs/Simulation.html`; the `manifest.csv` file updates accordingly.
+   - Precondition: `_data_raw` and other directories referenced in `_projr.yml` exist (they may be empty).
+   - Postcondition: fresh outputs populate `_tmp/projr/<version_number>`, where `<version_number>` is found in the `DESCRIPTION` file.
 3. **Targets debugging**
    - To rerun a single pipeline manually, set `TAR_PROJECT` and call `targets::tar_make()` exactly as shown in `Simulation.qmd`. Example:
      ```bash
@@ -33,7 +33,7 @@
 4. **Linting/tests**
    - There are no dedicated lint or unit-test scripts. Validation is achieved by successfully completing the `projr::projr_build_dev()` run and reviewing generated plots/statistics.
 5. **Cleaning**
-   - Use `Rscript -e 'projr::projr_clean()'` to purge `_tmp/` caches if simulations must be recomputed from scratch.
+   - After done, can delete the folder `_tmp`, as that is just a cache.
 
 Documented commands have been executed where possible; `projr::projr_build_dev()` currently fails early in this container because R is absent, so ensure Rscript is installed locally before running the workflow.
 
