@@ -6,6 +6,10 @@
 - Most experiments use simulated data produced in the `targets` pipelines (`targets/_targets-sim_test.R` and `targets/_targets-sim_loop.R`). Real-world inputs can be staged under the directories configured in `_projr.yml` (for example `_data_raw`, `_tmp`, `_output`, and `docs`).
 - Expect long-running computations when `targets` loops over simulation scenarios; guard expensive reruns by preserving the `_tmp/targets` stores between builds.
 
+## Pipelines
+
+- `_targets-sim_test.R`: a minimal gating and plotting workflow that loads a small flowSet from `HDCytoData`, converts it to a GatingSet, runs StimGate, and plots bootstrap statistics for cytokine-positive proportions. This should always complete successfully and is the first pipeline to validate after setting up the environment.
+
 ## Environment and dependencies
 - Always work with an R installation that can satisfy `renv`. `renv/settings.json` pins Bioconductor 3.20; match this with R ≥ 4.4 to avoid resolver errors.
 - Before editing code, run:
