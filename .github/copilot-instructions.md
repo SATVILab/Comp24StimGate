@@ -11,6 +11,7 @@
 - `_targets-sim_test.R`: a minimal gating and plotting workflow that loads a small flowSet from `HDCytoData`, converts it to a GatingSet, runs StimGate, and plots bootstrap statistics for cytokine-positive proportions. This should always complete successfully and is the first pipeline to validate after setting up the environment.
 
 ## Environment and dependencies
+
 - Always work with an R installation that can satisfy `renv`. `renv/settings.json` pins Bioconductor 3.20; match this with R ≥ 4.4 to avoid resolver errors.
 - Before editing code, run:
   ```bash
@@ -18,8 +19,6 @@
   Rscript -e 'renv::restore(prompt = FALSE)'
   ```
   This recreates the StimGate analysis environment (packages such as `CytoML`, `flowWorkspace`, `projr`, `targets`, `quarto`, etc.) listed in `_dependencies.R` and `renv.lock`.
-- If `Rscript` is missing you must install R first; the default container here fails with `bash: Rscript: command not found` until R is present.
-- The repo relies on Quarto. Install the CLI (`quarto --version`) before running notebooks; missing Quarto causes build failures when knitting `.qmd` files.
 
 ## Build, validation, and common workflows
 1. **Bootstrap/setup**

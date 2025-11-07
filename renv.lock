@@ -2002,7 +2002,7 @@
     },
     "UtilsGGSV": {
       "Package": "UtilsGGSV",
-      "Version": "0.5.1",
+      "Version": "0.5.2",
       "Source": "GitHub",
       "Type": "Package",
       "Title": "Utility functions for ggplot2",
@@ -2036,7 +2036,7 @@
       "RemoteUsername": "SATVILab",
       "RemoteRepo": "UtilsGGSV",
       "RemoteRef": "main",
-      "RemoteSha": "0b3a731c09f4530a8d2bc05a3071761ce5a55ead"
+      "RemoteSha": "cb8cf4dc64fe62dffa0e81da6418fe67a2338de3"
     },
     "V8": {
       "Package": "V8",
@@ -6891,7 +6891,7 @@
     },
     "stimgate": {
       "Package": "stimgate",
-      "Version": "0.99.1",
+      "Version": "0.99.1-1",
       "Source": "GitHub",
       "Type": "Package",
       "Title": "Identify responding cells as outliers",
@@ -6940,7 +6940,7 @@
       "RemoteUsername": "SATVILab",
       "RemoteRepo": "stimgate",
       "RemoteRef": "master",
-      "RemoteSha": "8c03998949619a113d1cd6bd02962c1a5407bdd2"
+      "RemoteSha": "112da6e082e757095134e93274fb9899e240cc6d"
     },
     "stringi": {
       "Package": "stringi",
