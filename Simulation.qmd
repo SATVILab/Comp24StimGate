@@ -11,19 +11,52 @@ for (i in seq_along(fn_vec_r)) {
 }
 ```
 
-## HDCytoData
+## sim_test Pipeline
 
-Here we have a test pipeline, that loads a flowSet, converts it to a GatingSet, runs stimgate, extracts statistics versus 
+This section runs the **sim_test** pipeline - a minimal workflow demonstrating StimGate gating on simulated flow cytometry data. The pipeline:
+
+1. Loads a base flowSet from HDCytoData (Bodenmiller BCR-XL dataset)
+2. Generates simulated cytokine expression for BC1 and BC2 markers with well-separated positive/negative populations
+3. Creates a GatingSet for StimGate analysis
+4. Plots raw expression distributions
+5. Runs StimGate automated gating
+6. Computes bootstrap statistics comparing actual vs StimGate-estimated proportions
+7. Generates correlation plots and gating visualizations
+
+This pipeline should always complete successfully and serves as the first validation after environment setup.
 
 ```{r}
 Sys.setenv("TAR_PROJECT" = "sim_test")
 targets::tar_make(callr_function = NULL)
 ```
 
+## sim_loop Pipeline
+
+This section runs the **sim_loop** pipeline - an extension of sim_test that runs multiple simulation iterations across different scenarios to compare StimGate against baseline tail-gate methods.
+
+The pipeline runs 5 iterations each of two scenarios:
+- **easy**: well-separated positive/negative populations (expr_mean_pos = 2)
+- **poor_separation**: overlapping populations (expr_mean_pos = 0.5, higher variance)
+
+For each iteration, the pipeline:
+1. Generates simulated flow data using `get_gatingset_from_scratch()`
+2. Computes ground truth statistics from known positive cell indices
+3. Runs StimGate automated gating
+4. Runs tail-gate baseline with multiple tolerance thresholds (10^-9 to 10^-1)
+5. Combines all statistics into a single table per iteration
+
+The pipeline then aggregates results across iterations to compute correlation metrics (concordance, Pearson, and Spearman) comparing estimated vs actual proportions for each gating method.
+
+This pipeline is computationally intensive due to the nested loops over simulations and tail-gate tolerance values. Outputs are cached in `_tmp/targets` for reuse.
+
 ```{r}
 Sys.setenv("TAR_PROJECT" = "sim_loop")
 targets::tar_make(callr_function = NULL)
 ```
+
+## Results for Easy Scenario
+
+The following plot shows the mean correlation between actual and estimated proportions for each gating method and cytokine combination in the easy scenario. The best-performing tail-gate method (based on any-positive correlations) is selected for comparison against StimGate.
 
 ```{r}
 corr_tbl_overall <- targets::tar_read(corr_tbl_overall_easy)
@@ -75,6 +108,10 @@ ggsave(
   height = 12
 )
 ```
+
+## Results for Poor Separation Scenario
+
+The following plot shows the mean correlation between actual and estimated proportions for each gating method and cytokine combination in the poor separation scenario. This scenario tests how well each gating method performs when positive and negative populations overlap significantly.
 
 ```{r}
 corr_tbl_overall <- targets::tar_read(corr_tbl_overall_poor_separation)

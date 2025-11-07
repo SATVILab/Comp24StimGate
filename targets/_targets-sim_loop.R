@@ -8,9 +8,36 @@ targets::tar_option_set(
   packages = c("ggplot2", "tibble", "projr")
 )
 
+# DESCRIPTION:
+# This is the sim_loop targets pipeline - an extension of sim_test that runs multiple
+# simulation iterations across different scenarios to compare StimGate against baseline
+# tail-gate methods. The pipeline:
+# 1. Runs 5 iterations each of "easy" and "poor_separation" scenarios
+#    - easy: well-separated positive/negative populations (expr_mean_pos = 2)
+#    - poor_separation: overlapping populations (expr_mean_pos = 0.5, higher variance)
+# 2. For each iteration:
+#    a. Generates simulated flow data using get_gatingset_from_scratch()
+#    b. Computes ground truth statistics from known positive cell indices
+#    c. Runs StimGate automated gating
+#    d. Runs tail-gate baseline with multiple tolerance thresholds (10^-9 to 10^-1)
+#    e. Combines all statistics into a single table per iteration
+# 3. Aggregates results across iterations to compute correlation metrics
+#    - Concordance, Pearson, and Spearman correlations
+#    - Compares estimated vs actual proportions for each gating method
+# 4. Produces overall correlation summaries for downstream plotting
+#
+# The pipeline is computationally intensive due to the nested loops over simulations
+# and tail-gate tolerance values. Outputs are cached in _tmp/targets for reuse.
+#
+# This pipeline extends sim_test by adding:
+# - Multiple simulation scenarios (easy vs poor_separation)
+# - Tail-gate baseline comparisons
+# - Statistical aggregation across iterations
+
 list(
   # specify _projr directories
   # ------------------
+  # Get project directories from projr configuration
   tar_target(
     dir_raw_data, projr::projr_path_get_dir("raw-data"),
     cue = tar_cue(mode = "always")
@@ -30,6 +57,9 @@ list(
 
   # do something
   # ------------------
+  # Run 5 simulation iterations for the "easy" scenario
+  # Each iteration generates fresh simulated data, runs StimGate and tail-gate,
+  # and combines results into a single statistics table
   tar_target(
     stats_tbl_bs_easy, {
       set.seed(1234)
@@ -37,20 +67,21 @@ list(
         seq_len(5),
         function(i) {
         message("Running simulation ", i)
-        # get data
+        # Generate simulated GatingSet with "easy" scenario parameters
+        # Creates flowSet with well-separated positive/negative populations
         dir_cache_sim <- file.path(dir_cache, i)
         sim_data <- get_gatingset_from_scratch(
           dir_cache = dir_cache_sim,
           scenario = "easy"
         )
 
-        # get actual stats
+        # Compute ground truth statistics from known positive cell indices
         stats_tbl_bs_actual <- get_stats_bs_actual(
           batch_list = sim_data$batch_list,
           chnl_list = sim_data$chnl_list
         )
 
-        # gate using stimgate
+        # Run StimGate automated gating and extract statistics
         path_project <- file.path(dir_cache_sim, "stimgate")
         invisible(stimgate::stimgate_gate(
           .data = flowWorkspace::load_gs(sim_data$path_gs),
@@ -60,12 +91,13 @@ list(
           marker = names(sim_data$chnl_list)
         ))
 
-        # get stats from stimgate
+        # Extract StimGate statistics
         stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
           path_project, chnl = names(sim_data$chnl_list)
         )
 
-        # gate using tail gate
+        # Run tail-gate baseline with multiple tolerance thresholds
+        # Tests 9 different thresholds from 10^-9 to 10^-1
         stats_list_bs_tg <- purrr::map(
           10^seq(-9, -1), function(x) {
             tg_obj <- try(gate_tg(
@@ -88,6 +120,7 @@ list(
               path_gs = tg_obj$path_gs
             )
 
+            # Convert to bootstrap format with tolerance-specific column name
             stats_tbl_bs_tg <- get_stats_tbl_bs_tg(stats_tbl_tg)
             cn_new <- paste0(
               "prop_bs_tg_", abs(log10(x))
@@ -97,9 +130,11 @@ list(
             stats_tbl_bs_tg
           }
         )
+        # Filter out failed gating attempts
         stats_list_bs_tg <- stats_list_bs_tg[
           vapply(stats_list_bs_tg, Negate(is.null), logical(1))
         ]
+        # Join all tail-gate results across tolerance thresholds
         stats_tbl_bs_tg <- stats_list_bs_tg[[1]]
         for (j in seq_along(stats_list_bs_tg)[-1]) {
           stats_tbl_bs_tg <- stats_tbl_bs_tg |>
@@ -109,7 +144,7 @@ list(
             )
         }
 
-        # get combined stats tbl
+        # Combine actual, StimGate, and tail-gate statistics into one table
         stats_tbl <- stats_tbl_bs_actual |>
           dplyr::full_join(
             stats_tbl_bs_stimgate,
@@ -119,13 +154,16 @@ list(
             stats_tbl_bs_tg,
             by = c("sample_ind", "cyt", "type")
           )
+        # Add simulation iteration number
         stats_tbl |>
           dplyr::mutate(
             sim = i
           ) |>
-          dplyr::select(sim, dplyr    ::everything())
+          dplyr::select(sim, dplyr::everything())
     })
   }),
+  # Run 5 simulation iterations for the "poor_separation" scenario
+  # Same structure as easy scenario, but with overlapping positive/negative populations
   tar_target(
     stats_tbl_bs_poor_separation, {
       set.seed(1234)
@@ -133,20 +171,21 @@ list(
         seq_len(5),
         function(i) {
         message("Running simulation ", i)
-        # get data
+        # Generate simulated GatingSet with "poor_separation" scenario parameters
+        # Creates flowSet with overlapping positive/negative populations (harder to gate)
         dir_cache_sim <- file.path(dir_cache, i)
         sim_data <- get_gatingset_from_scratch(
           dir_cache = dir_cache_sim,
           scenario = "poor_separation"
         )
 
-        # get actual stats
+        # Compute ground truth statistics from known positive cell indices
         stats_tbl_bs_actual <- get_stats_bs_actual(
           batch_list = sim_data$batch_list,
           chnl_list = sim_data$chnl_list
         )
 
-        # gate using stimgate
+        # Run StimGate automated gating and extract statistics
         path_project <- file.path(dir_cache_sim, "stimgate")
         invisible(stimgate::stimgate_gate(
           .data = flowWorkspace::load_gs(sim_data$path_gs),
@@ -156,12 +195,13 @@ list(
           marker = names(sim_data$chnl_list)
         ))
 
-        # get stats from stimgate
+        # Extract StimGate statistics
         stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
           path_project, chnl = names(sim_data$chnl_list)
         )
 
-        # gate using tail gate
+        # Run tail-gate baseline with multiple tolerance thresholds
+        # Tests 9 different thresholds from 10^-9 to 10^-1
         stats_list_bs_tg <- purrr::map(
           10^seq(-9, -1), function(x) {
             tg_obj <- try(gate_tg(
@@ -184,6 +224,7 @@ list(
               path_gs = tg_obj$path_gs
             )
 
+            # Convert to bootstrap format with tolerance-specific column name
             stats_tbl_bs_tg <- get_stats_tbl_bs_tg(stats_tbl_tg)
             cn_new <- paste0(
               "prop_bs_tg_", abs(log10(x))
@@ -193,9 +234,11 @@ list(
             stats_tbl_bs_tg
           }
         )
+        # Filter out failed gating attempts
         stats_list_bs_tg <- stats_list_bs_tg[
           vapply(stats_list_bs_tg, Negate(is.null), logical(1))
         ]
+        # Join all tail-gate results across tolerance thresholds
         stats_tbl_bs_tg <- stats_list_bs_tg[[1]]
         for (j in seq_along(stats_list_bs_tg)[-1]) {
           stats_tbl_bs_tg <- stats_tbl_bs_tg |>
@@ -205,7 +248,7 @@ list(
             )
         }
 
-        # get combined stats tbl
+        # Combine actual, StimGate, and tail-gate statistics into one table
         stats_tbl <- stats_tbl_bs_actual |>
           dplyr::full_join(
             stats_tbl_bs_stimgate,
@@ -215,23 +258,31 @@ list(
             stats_tbl_bs_tg,
             by = c("sample_ind", "cyt", "type")
           )
+        # Add simulation iteration number
         stats_tbl |>
           dplyr::mutate(
             sim = i
           ) |>
-          dplyr::select(sim, dplyr    ::everything())
+          dplyr::select(sim, dplyr::everything())
     })
   }),
+  # Compute per-simulation correlation metrics for the easy scenario
+  # Calculates concordance, Pearson, and Spearman correlations between
+  # actual and estimated proportions for StimGate and each tail-gate threshold
   tar_target(
     corr_tbl_by_sim_easy, get_corr_by_sim(stats_tbl_bs_easy)
   ),
+  # Compute per-simulation correlation metrics for the poor_separation scenario
   tar_target(
     corr_tbl_by_sim_poor_separation,
     get_corr_by_sim(stats_tbl_bs_poor_separation)
   ),
+  # Aggregate correlation metrics across all simulations for easy scenario
+  # Computes mean, SD, and 95% CI for each gating method and correlation type
   tar_target(
     corr_tbl_overall_easy, get_corr_tbl_overall(corr_tbl_by_sim_easy)
   ),
+  # Aggregate correlation metrics across all simulations for poor_separation scenario
   tar_target(
     corr_tbl_overall_poor_separation,
     get_corr_tbl_overall(corr_tbl_by_sim_poor_separation)
