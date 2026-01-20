@@ -1,3 +1,5 @@
+^renv$
+^renv\.lock$
 ^_raw_data/
 ^_raw_data$
 ^_tmp/
