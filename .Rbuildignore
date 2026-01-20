@@ -1,0 +1,16 @@
+^_raw_data/
+^_raw_data$
+^_tmp/
+^_tmp$
+^_output/
+^_output$
+^docs/
+^docs$
+
+# Start of projr section: do not edit by hand (update with projr_ignore_auto())
+^_projr\.yml$
+^README\.Rmd$
+^_archive/
+^_archive$
+# End of projr section
+

@@ -1,0 +1,9 @@
+_raw_data/**
+_tmp/**
+_output/**
+docs/**
+
+# Start of projr section: do not edit by hand (update with projr_ignore_auto())
+_archive/**
+# End of projr section
+
