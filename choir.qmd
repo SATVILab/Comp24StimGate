@@ -1,0 +1,27 @@
+# CHOIR
+
+## Vignette
+
+```{r, message = FALSE, warning = FALSE}
+if (!requireNamespace("scRNAseq", quietly = TRUE)) BiocManager::install("scRNAseq")
+library(scRNAseq)
+library(Seurat)
+library(CHOIR)
+```
+
+### Example data
+
+```{r, message = FALSE, warning = FALSE, results = FALSE}
+obj_norm <- readRDS(projr::projr_path_get(
+  "raw-data", "choir", "lamanno_mouse_adult-obj_norm.rds"
+))
+```
+
+### CHOIR
+
+```{r}
+obj_choir <- CHOIR(
+  obj_norm,  n_cores = 2
+)
+```
+
