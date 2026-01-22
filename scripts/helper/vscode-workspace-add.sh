@@ -220,6 +220,13 @@ spec_to_repo_name() {
   esac
 }
 
+# Sanitize branch name for use in directory paths
+# Replaces forward slashes with dashes to avoid nested directories
+sanitize_branch_name() {
+  local branch="$1"
+  printf '%s\n' "${branch//\//-}"
+}
+
 build_paths_list() {
   local repos_list_file="$1"
   local current_dir="$2"
@@ -382,7 +389,8 @@ build_paths_list() {
           if [ -n "$target_dir" ]; then
             repo_path="$parent_dir/$target_dir"
           else
-            repo_path="$parent_dir/${fallback_repo_name}-${branch}"
+            local safe_branch; safe_branch="$(sanitize_branch_name "$branch")"
+            repo_path="$parent_dir/${fallback_repo_name}-${safe_branch}"
           fi
           [[ "$debug" == true ]] && echo "[DEBUG]   @branch (worktree): branch=$branch, fallback=$fallback_repo_name, path=$repo_path" >&2
         else
@@ -390,7 +398,8 @@ build_paths_list() {
           if [ -n "$target_dir" ]; then
             repo_path="$parent_dir/$target_dir"
           else
-            repo_path="$parent_dir/${fallback_repo_name}-${branch}"
+            local safe_branch; safe_branch="$(sanitize_branch_name "$branch")"
+            repo_path="$parent_dir/${fallback_repo_name}-${safe_branch}"
           fi
           [[ "$debug" == true ]] && echo "[DEBUG]   @branch (clone): branch=$branch, fallback=$fallback_repo_name, path=$repo_path" >&2
         fi
@@ -437,7 +446,8 @@ build_paths_list() {
         elif [ -n "$ref" ]; then
           # Single-branch clone: only append branch if multiple references exist
           if [ "$repo_ref_count" -gt 1 ]; then
-            repo_path="$parent_dir/${repo_name}-${ref}"
+            local safe_ref; safe_ref="$(sanitize_branch_name "$ref")"
+            repo_path="$parent_dir/${repo_name}-${safe_ref}"
           else
             repo_path="$parent_dir/$repo_name"
           fi
