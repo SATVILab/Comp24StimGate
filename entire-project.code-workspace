@@ -23,6 +23,9 @@
     },
     {
       "path": "../DataTidyACSCyTOFCytokinesTCells"
+    },
+    {
+      "path": "../Analysis24StimGate"
     }
   ],
   "settings": {
