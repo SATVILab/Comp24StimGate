@@ -1,9 +1,11 @@
 # README
 
+The purpose of this project is to
+`[briefly describe the project's goals and objectives]`
 
 The purpose of this compendium is to analyse the `StimGate` cytokine-gating algorithm.
 
-## Contact
+Run the following code from the project working directory:
 
 For more information, please contact:
 - `Miguel Rodo`, `miguel.rodo@uct.ac.za`
@@ -11,12 +13,16 @@ For more information, please contact:
 
 ## Links
 
-- `[URLs to data sources (e.g. OneDrive), GitHub repos, publications, etc.]`
+-   `[URLs to data sources (e.g. OneDrive), GitHub repos, etc.]`
 
 ## Details
 
-### Reproduction instructions
+`[Methods, timeline, team, data sources, software/tools, etc.]`
 
-If inside a development container, just run `scripts/run-pipeline.sh`.
+## Change Log
 
-If outside a development container, run `scripts/clone-repos.sh` to clone the required repositories, then run `scripts/run-pipeline.sh`.
+Summary of updates is included below. For more detailed run information,
+including scripts run and configurations used, see
+[BUILDLOG.md](BUILDLOG.md).
+
+No CHANGELOG.md found.
