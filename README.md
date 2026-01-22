@@ -1,14 +1,13 @@
 # README
 
 
-The purpose of this compendium is to
-`[briefly describe the compendium's goals and objectives]`
+The purpose of this compendium is to analyse the `StimGate` cytokine-gating algorithm.
 
 ## Contact
 
 For more information, please contact:
-- `[Name]`, `[Email Address]`
-- `[Name]`, `[Email Address]`
+- `Miguel Rodo`, `miguel.rodo@uct.ac.za`
+- `Thomas Scriba`, `thomas.scriba@uct.ac.za`
 
 ## Links
 

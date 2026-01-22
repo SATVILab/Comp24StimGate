@@ -10,19 +10,7 @@
       "path": "../paper"
     },
     {
-      "path": "../alt"
-    },
-    {
-      "path": "../UtilsCytoRSV"
-    },
-    {
       "path": "../stimgate"
-    },
-    {
-      "path": "../DataProcessed25PostMortemCyTOFCytokines"
-    },
-    {
-      "path": "../DataTidyACSCyTOFCytokinesTCells"
     }
   ],
   "settings": {

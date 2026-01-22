@@ -1,0 +1,24 @@
+{
+  "image": "ghcr.io/satvilab/comp24stimgate-main",
+  "remoteEnv": {
+    "HTTP_PROXY": "http://host.docker.internal:3128",
+    "HTTPS_PROXY": "http://host.docker.internal:3128",
+    "http_proxy": "http://host.docker.internal:3128",
+    "https_proxy": "http://host.docker.internal:3128",
+    "NO_PROXY": "localhost,127.0.0.1",
+    "no_proxy": "localhost,127.0.0.1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "quarto.quarto",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "REditorSupport.r",
+        "bierner.markdown-preview-github-styles",
+        "eamodio.gitlens",
+        "mathematic.vscode-pdf"
+      ]
+    }
+  }
+}
