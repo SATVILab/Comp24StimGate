@@ -23,6 +23,7 @@ Usage: $0 [-f <repo-list>] [-p|--public]
 
 Each non-blank, non-# line of <repo-list> should start with:
   owner/repo[@branch] [target_directory]
+Lines starting with @ (worktree specifications) are skipped.
 Branches and target directories are ignored.
 EOF
   exit 1
@@ -86,9 +87,12 @@ create_branch() {
 while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in ''|\#*) continue ;; esac
 
+  # Skip worktree lines (lines starting with @)
+  # Trim leading whitespace first to handle indented @ lines
+  trimmed="${line#"${line%%[![:space:]]*}"}"
+  case "$trimmed" in @*) continue ;; esac
+
   repo_spec=${line%%[[:space:]]*}
-  # Skip lines starting with @ (worktree/branch specifications, not repo creation)
-  case "$repo_spec" in @*) continue ;; esac
   repo_path=${repo_spec%@*}
   owner=${repo_path%%/*}
   repo=${repo_path##*/}
