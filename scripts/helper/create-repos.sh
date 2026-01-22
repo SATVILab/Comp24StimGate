@@ -87,6 +87,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in ''|\#*) continue ;; esac
 
   repo_spec=${line%%[[:space:]]*}
+  # Skip lines starting with @ (worktree/branch specifications, not repo creation)
+  case "$repo_spec" in @*) continue ;; esac
   repo_path=${repo_spec%@*}
   owner=${repo_path%%/*}
   repo=${repo_path##*/}
