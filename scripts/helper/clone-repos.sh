@@ -555,63 +555,35 @@ clone_one_repo() {
 
 # --- Worktree flow -----------------------------------------------------------
 create_worktree_for_branch() {
-  # Args: base_path branch target_dir parent_dir debug
-  local base="$1" branch="$2" target_dir="$3" parent_dir="$4" debug="$5"
+  local base="$1" branch="$2" dest="$3" debug="$4"
   
-  [[ "$debug" == true ]] && echo "create_worktree_for_branch: base='$base' branch='$branch' target_dir='$target_dir'" >&2
+  [[ "$debug" == true ]] && echo "create_worktree_for_branch: base=$base, branch=$branch, dest=$dest" >&2
+
+  # Check if branch is already checked out in a worktree
+  local existing_worktree
+  existing_worktree="$(find_worktree_for_branch "$base" "$branch")" || true
   
-  [ -z "$branch" ] && { echo "Error: @branch requires a branch name."; return 1; }
-  [ -z "$base" ] && { echo "Error: no fallback base path available for worktree."; return 1; }
-
-  # If this branch is already checked out in any worktree, skip
-  [[ "$debug" == true ]] && echo "create_worktree_for_branch: checking if branch already checked out" >&2
-  local existing_wt
-  existing_wt="$(find_worktree_for_branch "$base" "$branch" || true)"
-  if [ -n "$existing_wt" ]; then
-    echo "Skip: branch '$branch' already checked out at $existing_wt"
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: branch already checked out, skipping" >&2
-    ((CNT_SKIPPED++))
-    return 2
-  fi
-
-  local repo_base; repo_base="$(basename "$base")"
-  local dest
-  if [ -n "$target_dir" ]; then
-    dest="$parent_dir/$target_dir"
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: using explicit target_dir, dest='$dest'" >&2
-  else
-    local safe_branch; safe_branch="$(sanitize_branch_name "$branch")"
-    dest="$parent_dir/${repo_base}-${safe_branch}"
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: using default dest='$dest'" >&2
-  fi
-
-  if [ -d "$dest/.git" ]; then
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: destination already exists, checking branch" >&2
-    if git -C "$dest" rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
-      local curb; curb="$(git -C "$dest" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-      if [ "$curb" = "$branch" ]; then
-        echo "Already exists: $dest (branch $branch)"
-      else
-        echo "Skip: $dest already exists (branch '$curb'); leaving as-is."
-      fi
+  if [ -n "$existing_worktree" ]; then
+    if [ "$existing_worktree" = "$dest" ]; then
+      # Already checked out at the correct location
+      [[ "$debug" == true ]] && echo "create_worktree_for_branch: worktree already exists at $dest, skipping" >&2
+      echo "Skip: branch '$branch' already checked out at $dest"
+      ((CNT_SKIPPED++))
+      return 2
     else
-      echo "Skip: $dest already exists and is a Git dir; leaving as-is."
+      # Checked out at a different location
+      [[ "$debug" == true ]] && echo "create_worktree_for_branch: branch '$branch' already checked out at $existing_worktree" >&2
+      echo "Skip: branch '$branch' already checked out at $existing_worktree"
+      ((CNT_SKIPPED++))
+      return 2
     fi
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: destination exists, skipping" >&2
-    ((CNT_SKIPPED++))
-    return 2  # benign skip
   fi
 
-  [[ "$debug" == true ]] && echo "create_worktree_for_branch: fetching from origin" >&2
-  git -C "$base" fetch --prune origin </dev/null
-
-  [[ "$debug" == true ]] && echo "create_worktree_for_branch: creating destination directory" >&2
-  mkdir -p "$dest"
-  if [ -n "$(ls -A "$dest" 2>/dev/null)" ]; then
-    echo "Skip: destination '$dest' exists and is not empty; not touching it." >&2
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: destination non-empty, skipping" >&2
-    (( CNT_SKIPPED++ ))
-    return 2  # benign skip
+  # Check if destination directory exists and is not empty
+  if [ -d "$dest" ] && [ -n "$(ls -A "$dest" 2>/dev/null)" ]; then
+    echo "Error: destination '$dest' exists and is not empty" >&2
+    ((CNT_ERRORS++))
+    return 1
   fi
 
   if local_branch_exists "$base" "$branch"; then
@@ -623,48 +595,22 @@ create_worktree_for_branch() {
     if git -C "$base" rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
       git -C "$dest" branch --set-upstream-to="origin/$branch" || true
     else
-      git -C "$dest" push -u origin HEAD:"$branch" || true
-    fi
-  elif git -C "$base" ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: branch exists on origin, tracking it" >&2
-    echo "Adding worktree $dest (tracking origin/$branch)"
-    # Ensure the remote-tracking ref exists even in single-branch clones
-    git -C "$base" fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" || true
-    if git -C "$base" rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
-      git -C "$base" worktree add -b "$branch" "$dest" "origin/$branch" </dev/null
-      ((CNT_WORKTREE_ADDED++))
-      git -C "$dest" branch --set-upstream-to "origin/$branch" || true
-      [[ "$debug" == true ]] && echo "create_worktree_for_branch: worktree added from origin/$branch" >&2
-    else
-      # Fallback: remote declared it exists, but we still don't see it locally.
-      # Start new branch from default (or HEAD if default isn't available).
-      [[ "$debug" == true ]] && echo "create_worktree_for_branch: could not resolve origin/$branch, using fallback" >&2
-      local defb base_ref
-      defb="$(default_remote_branch "$base")"
-      base_ref="origin/$defb"
-      if ! remote_branch_exists "$base" "$defb"; then base_ref="HEAD"; fi
-      echo "Could not resolve origin/$branch locally; creating from $base_ref instead"
-      git -C "$base" worktree add -b "$branch" "$dest" "$base_ref" </dev/null
-      ((CNT_WORKTREE_ADDED++))
-      git -C "$dest" push -u origin HEAD:"$branch" || true
+      git -C "$dest" push -u origin HEAD:"$branch" || {
+        echo "Warning: Failed to push branch '$branch' to origin" >&2
+      }
     fi
   else
-    # New branch off default; cope with single-branch bases (no origin/<default>)
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: creating new branch from default" >&2
-    local defb base_ref
-    defb="$(default_remote_branch "$base")"
-    base_ref="origin/$defb"
-    if ! remote_branch_exists "$base" "$defb"; then
-      # In single-branch clones, we may not have origin/<default>; fall back to HEAD.
-      base_ref="HEAD"
-    fi
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: base_ref='$base_ref'" >&2
-    echo "Adding worktree $dest (new branch '$branch' from $base_ref)"
-    git -C "$base" worktree add -b "$branch" "$dest" "$base_ref" </dev/null
-    git -C "$dest" push -u origin HEAD:"$branch" || true
+    [[ "$debug" == true ]] && echo "create_worktree_for_branch: local branch does not exist, creating it" >&2
+    echo "Creating worktree $dest (new branch '$branch')"
+    git -C "$base" worktree add -b "$branch" "$dest" </dev/null
     ((CNT_WORKTREE_ADDED++))
-    [[ "$debug" == true ]] && echo "create_worktree_for_branch: worktree added and pushed" >&2
+    [[ "$debug" == true ]] && echo "create_worktree_for_branch: worktree added, pushing to set upstream" >&2
+    git -C "$dest" push -u origin HEAD:"$branch" || {
+      echo "Warning: Failed to push branch '$branch' to origin" >&2
+    }
   fi
+  
+  return 0
 }
 
 # --- Argument parsing --------------------------------------------------------
@@ -828,7 +774,7 @@ main() {
 
       if [ "$is_worktree" -eq 1 ]; then
         local branch=""; case "$repo_spec" in *@*) branch="${repo_spec##*@}" ;; esac
-        local base_abs
+        local base_abs dest_abs
         if [ "$fallback_repo_https" = "$current_repo_https" ]; then
           base_abs="$start_dir"
         else
@@ -836,7 +782,20 @@ main() {
           base_abs="$parent_dir/$base_name"
           ensure_base_exists "$fallback_repo_https" "$base_abs" "$DEBUG" || rc=$?
         fi
-        [ $rc -eq 0 ] && create_worktree_for_branch "$base_abs" "$branch" "$target_dir" "$parent_dir" "$DEBUG" || rc=$?
+        
+        # Determine worktree destination
+        if [ -n "$target_dir" ]; then
+          dest_abs="$parent_dir/$target_dir"
+        else
+          local repo_name; repo_name="$(repo_basename_from_https "$fallback_repo_https")"
+          local safe_branch; safe_branch="$(sanitize_branch_name "$branch")"
+          dest_abs="$parent_dir/${repo_name}-${safe_branch}"
+        fi
+        
+        # Only create worktree if base was ensured successfully
+        [ $rc -eq 0 ] && {
+          create_worktree_for_branch "$base_abs" "$branch" "$dest_abs" "$DEBUG" || rc=$?
+        }
         fallback_repo_local="$base_abs"
         remember_remote "$fallback_repo_https" "$fallback_repo_local"
       else
@@ -881,7 +840,7 @@ main() {
     [[ "$DEBUG" = "true" ]] && echo "Providing feedback" >&2
     case "$line_rc" in
       0) : ;;
-      2) printf '↷ skipped: %s\n' "$CURRENT_LINE" >&2 ;;
+      2) : ;;  # Changed from printing skip message to silent success
       *) printf '✖ line failed (rc=%s): %s\n' "$line_rc" "$CURRENT_LINE" >&2; ((CNT_ERRORS++)) ;;
     esac
     [[ "$DEBUG" == true ]] && echo "Moving to next line." >&2
