@@ -6980,7 +6980,7 @@
     },
     "renv": {
       "Package": "renv",
-      "Version": "1.1.5",
+      "Version": "1.1.6",
       "Source": "Repository",
       "Type": "Package",
       "Title": "Project Environments",
@@ -6998,6 +6998,7 @@
         "compiler",
         "covr",
         "cpp11",
+        "curl",
         "devtools",
         "generics",
         "gitcreds",
@@ -7021,7 +7022,7 @@
         "webfakes"
       ],
       "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.2",
+      "RoxygenNote": "7.3.3",
       "VignetteBuilder": "knitr",
       "Config/Needs/website": "tidyverse/tidytemplate",
       "Config/testthat/edition": "3",
@@ -7471,7 +7472,7 @@
     },
     "stimgate": {
       "Package": "stimgate",
-      "Version": "0.99.1-1",
+      "Version": "0.99.2-7",
       "Source": "GitHub",
       "Type": "Package",
       "Title": "Identify responding cells as outliers",
@@ -7485,7 +7486,7 @@
         "R (>= 4.4.0)"
       ],
       "Roxygen": "list(markdown = TRUE)",
-      "RoxygenNote": "7.3.2",
+      "RoxygenNote": "7.3.3",
       "biocViews": "FlowCytometry, SingleCell, CellBasedAssays, ImmunoOncology",
       "VignetteEngine": "knitr::rmarkdown",
       "Imports": [
@@ -7511,7 +7512,9 @@
         "BiocManager",
         "knitr",
         "rmarkdown",
-        "hexbin"
+        "hexbin",
+        "gh",
+        "gitcreds"
       ],
       "Author": "Miguel Rodo [aut, cre] (<https://orcid.org/0000-0002-2036-4878>)",
       "Maintainer": "Miguel Rodo <miguel.rodo@uct.ac.za>",
@@ -7519,8 +7522,8 @@
       "RemoteHost": "api.github.com",
       "RemoteUsername": "SATVILab",
       "RemoteRepo": "stimgate",
-      "RemoteRef": "master",
-      "RemoteSha": "112da6e082e757095134e93274fb9899e240cc6d"
+      "RemoteRef": "dev",
+      "RemoteSha": "bc48b8381d62cb342cb2c961619df1d1581b6bd3"
     },
     "stringi": {
       "Package": "stringi",

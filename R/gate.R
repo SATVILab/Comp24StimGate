@@ -13,16 +13,26 @@
 gate <- function(chnl_list,
                  batch_list,
                  path_gs,
-                 path_project) {
+                 path_project,
+                 .debug = FALSE,
+                 intermediate = FALSE) {
   # Load the GatingSet from disk
   gs <- suppressMessages(flowWorkspace::load_gs(path_gs))
   # Run StimGate gating algorithm and save results to path_project
+  if (.debug) {
+    Sys.setenv("STIMGATE_DEBUG" = "TRUE")
+    on.exit(Sys.unsetenv("STIMGATE_DEBUG"), add = TRUE)
+  }
+  if (intermediate) {
+    Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+    on.exit(Sys.unsetenv("STIMGATE_INTERMEDIATE"), add = TRUE)
+  }
   stimgate::stimgate_gate(
     .data = gs,
     path_project = path_project,
-    pop_gate = "root",          # Gate from the root population
+    pop_gate = "root",          # Gate from the root pilopulation
     batch_list = batch_list,    # Account for batch structure
-    marker = names(chnl_list)   # Markers to gate
+    chnl = names(chnl_list)   # Markers to gate
   )
 }
 

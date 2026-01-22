@@ -6,7 +6,8 @@ for (x in list.files(here::here("R"), pattern = "R$|r$", full.names = TRUE)) {
 }
 targets::tar_option_set(
   # attach packages in targets
-  packages = c("ggplot2", "tibble", "projr")
+  packages = c("ggplot2", "tibble", "projr"),
+  imports = "stimgate"
 )
 
 # DESCRIPTION:
@@ -87,7 +88,9 @@ list(
       path_gs = path_gs,
       chnl_list = chnl_list,
       batch_list = batch_list,
-      path_project = file.path(dir_cache, "stimgate")
+      path_project = file.path(dir_cache, "stimgate"),
+      .debug = TRUE,
+      intermediate = TRUE
     ),
     format = "file"
   ),
@@ -138,7 +141,7 @@ list(
       batch_list = batch_list,
       path_gs = path_gs,
       path_project = path_project,
-      marker = names(chnl_list),
+      chnl = names(chnl_list),
       path_dir_save_base = file.path(dir_cache, "plot", "stimgate")
     ),
     format = "file"

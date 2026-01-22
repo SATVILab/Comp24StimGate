@@ -5,7 +5,8 @@ for (x in list.files(here::here("R"), pattern = "R$|r$", full.names = TRUE)) {
 }
 targets::tar_option_set(
   # attach packages in targets
-  packages = c("ggplot2", "tibble", "projr")
+  packages = c("ggplot2", "tibble", "projr"),
+  imports = c("stimgate")
 )
 
 # DESCRIPTION:
@@ -212,10 +213,13 @@ list(
               path_gs_save = file.path(dirname(sim_data$path_gs), "gs_tg"),
               tol = x
             ))
+            
             if (inherits(tg_obj, "try-error")) {
               message("Error in gating with tol = ", x)
               return(NULL)
-            }
+            } # else {
+             # message("Successfully gated with tol = ", x)
+            #}
 
             stats_tbl_tg <- get_stats_tbl_tg(
               gate_tbl = tg_obj$gate_tbl,

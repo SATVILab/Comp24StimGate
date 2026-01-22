@@ -14,25 +14,25 @@
 plot_gate <- function(batch_list,
                       path_gs,
                       path_project,
-                      marker,
+                      chnl,
                       path_dir_save_base) {
   # Get all pairwise combinations of markers
   gs <- flowWorkspace::load_gs(path_gs)
-  comb_marker <- combn(marker, 2, simplify = FALSE)
+  comb_marker <- combn(chnl, 2, simplify = FALSE)
   # Clean up output directory
   if (dir.exists(path_dir_save_base)) {
     unlink(path_dir_save_base, recursive = TRUE)
   }
   # Get marker labels for plot axes
-  marker_lab <- UtilsCytoRSV::chnl_lab(
+  chnl_lab <- UtilsCytoRSV::chnl_lab(
     flowWorkspace::gh_pop_get_data(gs[[1]])
   )
   # Create plots for each marker pair
   for (i in seq_along(comb_marker)) {
-    marker_pair <- comb_marker[[i]]
+    chnl_pair <- comb_marker[[i]]
     # Create subdirectory for this marker pair
     path_dir_save_marker <- file.path(
-      path_dir_save_base, paste0(marker_pair, collapse = "_")
+      path_dir_save_base, paste0(chnl_pair, collapse = "_")
     )
     dir.create(path_dir_save_marker, recursive = TRUE)
     # Create sample index labels
@@ -48,10 +48,9 @@ plot_gate <- function(batch_list,
         ind_lab = ind_lab,
         .data = gs,
         path_project = path_project,
-        marker = marker_pair,
+        chnl = chnl_pair,
         limits_expand = list(c(0, 4)),
-        limits_equal = TRUE,
-        marker_lab = marker_lab,
+        limits_equal = TRUE
       )
       # Save plot for this batch
       fn <- paste0(paste0(batch, collapse = "_"), ".png")

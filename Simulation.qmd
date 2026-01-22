@@ -39,6 +39,7 @@ The pipeline runs 5 iterations each of two scenarios:
 - **poor_separation**: overlapping populations (expr_mean_pos = 0.5, higher variance)
 
 For each iteration, the pipeline:
+
 1. Generates simulated flow data using `get_gatingset_from_scratch()`
 2. Computes ground truth statistics from known positive cell indices
 3. Runs StimGate automated gating
@@ -47,7 +48,8 @@ For each iteration, the pipeline:
 
 The pipeline then aggregates results across iterations to compute correlation metrics (concordance, Pearson, and Spearman) comparing estimated vs actual proportions for each gating method.
 
-This pipeline is computationally intensive due to the nested loops over simulations and tail-gate tolerance values. Outputs are cached in `_tmp/targets` for reuse.
+This pipeline is computationally intensive due to the nested loops over simulations and tail-gate tolerance values.
+Outputs are cached in `_tmp/targets` for reuse.
 
 ```{r}
 Sys.setenv("TAR_PROJECT" = "sim_loop")
