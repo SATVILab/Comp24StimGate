@@ -50,17 +50,17 @@ list(
   # ------------------
   # Load base flowSet from HDCytoData (Bodenmiller BCR-XL dataset)
   tar_target(fs, get_fs()),
-  
+
   # Generate simulated cytokine data for BC1 and BC2 channels
   # Returns a list where each element contains fs, ind_list, resp_tbl, batch_list
   tar_target(chnl_list, get_chnl_list(fs = fs)),
-  
+
   # Extract batch groupings (which samples belong to each batch)
   tar_target(batch_list, chnl_list[[1]]$batch_list),
-  
+
   # Extract the final flowSet with all simulated channels
   tar_target(fs_gate, chnl_list[[length(chnl_list)]]$fs),
-  
+
   # Create and save GatingSet from the simulated flowSet
   tar_target(path_gs, get_gatingset(
     fs = chnl_list[[length(chnl_list)]]$fs,
@@ -68,7 +68,7 @@ list(
   ),
   format = "file"
   ),
-  
+
   # Plot raw expression densities for each marker (stimulated vs unstimulated)
   tar_target(
     path_plot_raw,
@@ -80,7 +80,7 @@ list(
     ),
     format = "file"
   ),
-  
+
   # Run StimGate automated gating and save results
   tar_target(
     path_project,
@@ -94,7 +94,7 @@ list(
     ),
     format = "file"
   ),
-  
+
   # Extract bootstrap statistics from StimGate results
   # Includes single-marker, combination, and any-positive proportions
   tar_target(
@@ -104,7 +104,7 @@ list(
       path_project = path_project
     )
   ),
-  
+
   # Compute actual (ground truth) bootstrap statistics from simulation
   tar_target(
     stats_tbl_bs_actual,
@@ -113,7 +113,7 @@ list(
       chnl_list = chnl_list
     )
   ),
-  
+
   # Join StimGate and actual statistics for comparison
   tar_target(
     stats_tbl_bs,
@@ -123,7 +123,7 @@ list(
         by = c("type", "sample_ind", "cyt")
       )
   ),
-  
+
   # Plot correlation between StimGate and actual proportions
   tar_target(
     path_plot_corr,
@@ -133,7 +133,7 @@ list(
     ),
     format = "file"
   ),
-  
+
   # Plot StimGate gates overlaid on bivariate scatter plots
   tar_target(
     path_plot_gate,

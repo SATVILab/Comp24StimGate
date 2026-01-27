@@ -89,7 +89,7 @@ list(
           path_project = path_project,
           pop_gate = "root",
           batch_list = sim_data$batch_list,
-          marker = names(sim_data$chnl_list)
+          chnl = names(sim_data$chnl_list)
         ))
 
         # Extract StimGate statistics
@@ -193,7 +193,7 @@ list(
           path_project = path_project,
           pop_gate = "root",
           batch_list = sim_data$batch_list,
-          marker = names(sim_data$chnl_list)
+          chnl = names(sim_data$chnl_list)
         ))
 
         # Extract StimGate statistics
