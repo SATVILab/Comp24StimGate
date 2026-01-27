@@ -18,9 +18,15 @@
 ^README\.Rmd$
 ^Simulation\.qmd$
 ^_dependencies\.R$
+^_targets\.yaml$
 ^BUILDLOG\.md$
 ^CHANGELOG\.md$
 ^manifest\.csv$
+^Rplots\.pdf$
+^\.devcontainer/
+^\.devcontainer$
+^\.github/
+^\.github$
 ^Simulation_files/
 ^Simulation_files$
 ^Simulation\.html/

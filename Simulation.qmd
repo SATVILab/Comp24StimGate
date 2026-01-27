@@ -102,7 +102,10 @@ p <- ggplot(corr_tbl_plot, aes(x = cyt, y = corr_mean, fill = gating_method)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom"
   )
-path_p <- projr::projr_path_get("cache", "sim_loop", "plots", "easy-corr_mean_by_cyt.png")
+path_p <- projr::projr_path_get(
+  "cache", "sim_loop", "easy", "across_iter",
+  "plots", "corr_mean_by_cyt.png"
+  )
 ggsave(
   filename = path_p,
   plot = p,
@@ -157,7 +160,10 @@ p <- ggplot(corr_tbl_plot, aes(x = cyt, y = corr_mean, fill = gating_method)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom"
   )
-path_p <- projr::projr_path_get("cache", "sim_loop", "plots", "poor_separation-corr_mean_by_cyt.png")
+path_p <- projr::projr_path_get(
+  "cache", "sim_loop", "poor_sep", "plots",
+  "across_iter", "corr_mean_by_cyt.png"
+  )
 ggsave(
   filename = path_p,
   plot = p,

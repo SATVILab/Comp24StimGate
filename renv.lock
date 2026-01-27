@@ -7472,10 +7472,10 @@
     },
     "stimgate": {
       "Package": "stimgate",
-      "Version": "0.99.2-7",
+      "Version": "0.99.2-10",
       "Source": "GitHub",
       "Type": "Package",
-      "Title": "Identify responding cells as outliers",
+      "Title": "Identify Responding Cells as Outliers",
       "Authors@R": "person(\"Miguel\", \"Rodo\", , \"miguel.rodo@uct.ac.za\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-2036-4878\"))",
       "Description": "Apply outlier gating function to identify cells that have possibly responded to stimulation, by comparing the unstimulated and stimulated tubes from the same sample.",
       "URL": "https://github.com/SATVILab/stimgate",
@@ -7488,7 +7488,7 @@
       "Roxygen": "list(markdown = TRUE)",
       "RoxygenNote": "7.3.3",
       "biocViews": "FlowCytometry, SingleCell, CellBasedAssays, ImmunoOncology",
-      "VignetteEngine": "knitr::rmarkdown",
+      "VignetteBuilder": "knitr",
       "Imports": [
         "cowplot",
         "dplyr",
@@ -7523,7 +7523,7 @@
       "RemoteUsername": "SATVILab",
       "RemoteRepo": "stimgate",
       "RemoteRef": "dev",
-      "RemoteSha": "bc48b8381d62cb342cb2c961619df1d1581b6bd3"
+      "RemoteSha": "ae44245af009f60ec60608aa8503b091bd86d501"
     },
     "stringi": {
       "Package": "stringi",

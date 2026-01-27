@@ -44,7 +44,7 @@ list(
     cue = tar_cue(mode = "always")
   ),
   tar_target(
-    dir_cache, projr::projr_path_get_dir("cache"),
+    dir_cache, projr::projr_path_get_dir("cache", "sim_loop"),
     cue = tar_cue(mode = "always")
   ),
   tar_target(
@@ -66,12 +66,19 @@ list(
     {
       set.seed(1234)
       purrr::map_df(
-        seq_len(5),
+        seq_len(1),
         function(i) {
           message("Running simulation ", i)
+          print(i)
           # Generate simulated GatingSet with "easy" scenario parameters
           # Creates flowSet with well-separated positive/negative populations
-          dir_cache_sim <- file.path(dir_cache, i)
+          dir_cache_sim <- file.path(dir_cache, "easy", paste0("iter_", i))
+          if (dir.exists(dir_cache_sim)) {
+            unlink(dir_cache_sim, recursive = TRUE)
+          }
+          if (!dir.exists(dir_cache_sim)) {
+            dir.create(dir_cache_sim, recursive = TRUE)
+          }
           sim_data <- get_gatingset_from_scratch(
             dir_cache = dir_cache_sim,
             scenario = "easy"
@@ -85,15 +92,32 @@ list(
 
           # Run StimGate automated gating and extract statistics
           path_project <- file.path(dir_cache_sim, "stimgate")
-          Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+          if (i == 1) {
+            Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+            Sys.setenv("STIMGATE_DEBUG" = "TRUE")
+            on.exit({
+              Sys.unsetenv("STIMGATE_INTERMEDIATE")
+              Sys.unsetenv("STIMGATE_DEBUG")
+            }, add = TRUE)
+          }
           invisible(stimgate::stimgate_gate(
             .data = flowWorkspace::load_gs(sim_data$path_gs),
             path_project = path_project,
             pop_gate = "root",
             batch_list = sim_data$batch_list,
-            chnl = names(sim_data$chnl_list),
-            debug = TRUE
+            chnl = names(sim_data$chnl_list)
           ))
+
+          # Make plots
+          if (i == 1) {
+            plot_gate(
+              batch_list = sim_data$batch_list,
+              path_gs = sim_data$path_gs,
+              path_project = path_project,
+              chnl = names(sim_data$chnl_list),
+              path_dir_save_base = file.path(dir_cache_sim, "plot", "stimgate")
+            )
+          }
 
           # Extract StimGate statistics
           stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
@@ -176,12 +200,18 @@ list(
     {
       set.seed(1234)
       purrr::map_df(
-        seq_len(5),
+        seq_len(1),
         function(i) {
           message("Running simulation ", i)
           # Generate simulated GatingSet with "poor_separation" scenario parameters
           # Creates flowSet with overlapping positive/negative populations (harder to gate)
-          dir_cache_sim <- file.path(dir_cache, i)
+          dir_cache_sim <- file.path(dir_cache, "poor_sep", paste0("iter_", i))
+          if (dir.exists(dir_cache_sim)) {
+            unlink(dir_cache_sim, recursive = TRUE)
+          }
+          if (!dir.exists(dir_cache_sim)) {
+            dir.create(dir_cache_sim, recursive = TRUE)
+          }
           sim_data <- get_gatingset_from_scratch(
             dir_cache = dir_cache_sim,
             scenario = "poor_separation"
@@ -195,15 +225,315 @@ list(
 
           # Run StimGate automated gating and extract statistics
           path_project <- file.path(dir_cache_sim, "stimgate")
-          Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+          if (i == 1) {
+            Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+            Sys.setenv("STIMGATE_DEBUG" = "TRUE")
+            # Sys.setenv("STIMGATE_BROWSE" = "1")
+            on.exit({
+              Sys.unsetenv("STIMGATE_INTERMEDIATE")
+              Sys.unsetenv("STIMGATE_DEBUG")
+              Sys.unsetenv("STIMGATE_BROWSE")
+            }, add = TRUE)
+          }
+          invisible(stimgate::stimgate_gate(
+            .data = flowWorkspace::load_gs(sim_data$path_gs),
+            path_project = path_project,
+            pop_gate = "root",
+            batch_list = sim_data$batch_list,
+            chnl = names(sim_data$chnl_list)
+          ))
+
+          # Make plots
+          if (i == 1) {
+            plot_gate(
+              batch_list = sim_data$batch_list,
+              path_gs = sim_data$path_gs,
+              path_project = path_project,
+              chnl = names(sim_data$chnl_list),
+              path_dir_save_base = file.path(dir_cache_sim, "plot", "stimgate")
+            )
+          }
+
+          # Extract StimGate statistics
+          stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
+            path_project,
+            chnl = names(sim_data$chnl_list)
+          )
+
+          # Run tail-gate baseline with multiple tolerance thresholds
+          # Tests 9 different thresholds from 10^-9 to 10^-1
+          stats_list_bs_tg <- purrr::map(
+            10^seq(-9, -1), function(x) {
+              tg_obj <- try(gate_tg(
+                path_gs = sim_data$path_gs,
+                chnl_list = sim_data$chnl_list,
+                batch_list = sim_data$batch_list,
+                path_project = path_project,
+                path_gs_save = file.path(dirname(sim_data$path_gs), "gs_tg"),
+                tol = x
+              ))
+
+              if (inherits(tg_obj, "try-error")) {
+                message("Error in gating with tol = ", x)
+                return(NULL)
+              } # else {
+              # message("Successfully gated with tol = ", x)
+              # }
+
+              stats_tbl_tg <- get_stats_tbl_tg(
+                gate_tbl = tg_obj$gate_tbl,
+                chnl_list = sim_data$chnl_list,
+                batch_list = sim_data$batch_list,
+                path_gs = tg_obj$path_gs
+              )
+
+              # Convert to bootstrap format with tolerance-specific column name
+              stats_tbl_bs_tg <- get_stats_tbl_bs_tg(stats_tbl_tg)
+              cn_new <- paste0(
+                "prop_bs_tg_", abs(log10(x))
+              )
+              stats_tbl_bs_tg[[cn_new]] <- stats_tbl_bs_tg[["prop_bs_tg"]]
+              stats_tbl_bs_tg[["prop_bs_tg"]] <- NULL
+              stats_tbl_bs_tg
+            }
+          )
+          # Filter out failed gating attempts
+          stats_list_bs_tg <- stats_list_bs_tg[
+            vapply(stats_list_bs_tg, Negate(is.null), logical(1))
+          ]
+          # Join all tail-gate results across tolerance thresholds
+          stats_tbl_bs_tg <- stats_list_bs_tg[[1]]
+          for (j in seq_along(stats_list_bs_tg)[-1]) {
+            stats_tbl_bs_tg <- stats_tbl_bs_tg |>
+              dplyr::full_join(
+                stats_list_bs_tg[[j]],
+                by = c("sample_ind", "cyt", "type")
+              )
+          }
+
+          # Combine actual, StimGate, and tail-gate statistics into one table
+          stats_tbl <- stats_tbl_bs_actual |>
+            dplyr::full_join(
+              stats_tbl_bs_stimgate,
+              by = c("sample_ind", "cyt", "type")
+            ) |>
+            dplyr::full_join(
+              stats_tbl_bs_tg,
+              by = c("sample_ind", "cyt", "type")
+            )
+          # Add simulation iteration number
+          stats_tbl |>
+            dplyr::mutate(
+              sim = i
+            ) |>
+            dplyr::select(sim, dplyr::everything())
+        }
+      )
+    }
+  ),
+    # Run 5 simulation iterations for the "poor_separation" scenario
+  # Same structure as easy scenario, but with overlapping positive/negative populations
+  tar_target(
+    stats_tbl_bs_poor_separation_bandwidth_low,
+    {
+      set.seed(1234)
+      purrr::map_df(
+        seq_len(1),
+        function(i) {
+          message("Running simulation ", i)
+          # Generate simulated GatingSet with "poor_separation" scenario parameters
+          # Creates flowSet with overlapping positive/negative populations (harder to gate)
+          dir_cache_sim <- file.path(dir_cache, "poor_sep_bandwidth_low", paste0("iter_", i))
+          if (dir.exists(dir_cache_sim)) {
+            unlink(dir_cache_sim, recursive = TRUE)
+          }
+          if (!dir.exists(dir_cache_sim)) {
+            dir.create(dir_cache_sim, recursive = TRUE)
+          }
+          sim_data <- get_gatingset_from_scratch(
+            dir_cache = dir_cache_sim,
+            scenario = "poor_separation"
+          )
+
+          # Compute ground truth statistics from known positive cell indices
+          stats_tbl_bs_actual <- get_stats_bs_actual(
+            batch_list = sim_data$batch_list,
+            chnl_list = sim_data$chnl_list
+          )
+
+          # Run StimGate automated gating and extract statistics
+          path_project <- file.path(dir_cache_sim, "stimgate")
+          if (i == 1) {
+            Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+            Sys.setenv("STIMGATE_DEBUG" = "TRUE")
+            # Sys.setenv("STIMGATE_BROWSE" = "1")
+            on.exit({
+              Sys.unsetenv("STIMGATE_INTERMEDIATE")
+              Sys.unsetenv("STIMGATE_DEBUG")
+              Sys.unsetenv("STIMGATE_BROWSE")
+            }, add = TRUE)
+          }
           invisible(stimgate::stimgate_gate(
             .data = flowWorkspace::load_gs(sim_data$path_gs),
             path_project = path_project,
             pop_gate = "root",
             batch_list = sim_data$batch_list,
             chnl = names(sim_data$chnl_list),
-            debug = TRUE
+            chnl_settings = list(
+              "BC1(La139)Dd" = list(bw_min = 0.025) # down from 0.17505
+            )
           ))
+
+          # Make plots
+          if (i == 1) {
+            plot_gate(
+              batch_list = sim_data$batch_list,
+              path_gs = sim_data$path_gs,
+              path_project = path_project,
+              chnl = names(sim_data$chnl_list),
+              path_dir_save_base = file.path(dir_cache_sim, "plot", "stimgate")
+            )
+          }
+
+          # Extract StimGate statistics
+          stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
+            path_project,
+            chnl = names(sim_data$chnl_list)
+          )
+
+          # Run tail-gate baseline with multiple tolerance thresholds
+          # Tests 9 different thresholds from 10^-9 to 10^-1
+          stats_list_bs_tg <- purrr::map(
+            10^seq(-9, -1), function(x) {
+              tg_obj <- try(gate_tg(
+                path_gs = sim_data$path_gs,
+                chnl_list = sim_data$chnl_list,
+                batch_list = sim_data$batch_list,
+                path_project = path_project,
+                path_gs_save = file.path(dirname(sim_data$path_gs), "gs_tg"),
+                tol = x
+              ))
+
+              if (inherits(tg_obj, "try-error")) {
+                message("Error in gating with tol = ", x)
+                return(NULL)
+              } # else {
+              # message("Successfully gated with tol = ", x)
+              # }
+
+              stats_tbl_tg <- get_stats_tbl_tg(
+                gate_tbl = tg_obj$gate_tbl,
+                chnl_list = sim_data$chnl_list,
+                batch_list = sim_data$batch_list,
+                path_gs = tg_obj$path_gs
+              )
+
+              # Convert to bootstrap format with tolerance-specific column name
+              stats_tbl_bs_tg <- get_stats_tbl_bs_tg(stats_tbl_tg)
+              cn_new <- paste0(
+                "prop_bs_tg_", abs(log10(x))
+              )
+              stats_tbl_bs_tg[[cn_new]] <- stats_tbl_bs_tg[["prop_bs_tg"]]
+              stats_tbl_bs_tg[["prop_bs_tg"]] <- NULL
+              stats_tbl_bs_tg
+            }
+          )
+          # Filter out failed gating attempts
+          stats_list_bs_tg <- stats_list_bs_tg[
+            vapply(stats_list_bs_tg, Negate(is.null), logical(1))
+          ]
+          # Join all tail-gate results across tolerance thresholds
+          stats_tbl_bs_tg <- stats_list_bs_tg[[1]]
+          for (j in seq_along(stats_list_bs_tg)[-1]) {
+            stats_tbl_bs_tg <- stats_tbl_bs_tg |>
+              dplyr::full_join(
+                stats_list_bs_tg[[j]],
+                by = c("sample_ind", "cyt", "type")
+              )
+          }
+
+          # Combine actual, StimGate, and tail-gate statistics into one table
+          stats_tbl <- stats_tbl_bs_actual |>
+            dplyr::full_join(
+              stats_tbl_bs_stimgate,
+              by = c("sample_ind", "cyt", "type")
+            ) |>
+            dplyr::full_join(
+              stats_tbl_bs_tg,
+              by = c("sample_ind", "cyt", "type")
+            )
+          # Add simulation iteration number
+          stats_tbl |>
+            dplyr::mutate(
+              sim = i
+            ) |>
+            dplyr::select(sim, dplyr::everything())
+        }
+      )
+    }
+  ),
+  tar_target(
+    stats_tbl_bs_poor_separation_bias_uns_low,
+    {
+      set.seed(1234)
+      purrr::map_df(
+        seq_len(1),
+        function(i) {
+          message("Running simulation ", i)
+          # Generate simulated GatingSet with "poor_separation" scenario parameters
+          # Creates flowSet with overlapping positive/negative populations (harder to gate)
+          dir_cache_sim <- file.path(dir_cache, "poor_sep_bias_uns_low", paste0("iter_", i))
+          if (dir.exists(dir_cache_sim)) {
+            unlink(dir_cache_sim, recursive = TRUE)
+          }
+          if (!dir.exists(dir_cache_sim)) {
+            dir.create(dir_cache_sim, recursive = TRUE)
+          }
+          sim_data <- get_gatingset_from_scratch(
+            dir_cache = dir_cache_sim,
+            scenario = "poor_separation"
+          )
+
+          # Compute ground truth statistics from known positive cell indices
+          stats_tbl_bs_actual <- get_stats_bs_actual(
+            batch_list = sim_data$batch_list,
+            chnl_list = sim_data$chnl_list
+          )
+
+          # Run StimGate automated gating and extract statistics
+          path_project <- file.path(dir_cache_sim, "stimgate")
+          if (i == 1) {
+            Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
+            Sys.setenv("STIMGATE_DEBUG" = "TRUE")
+            # Sys.setenv("STIMGATE_BROWSE" = "1")
+            on.exit({
+              Sys.unsetenv("STIMGATE_INTERMEDIATE")
+              Sys.unsetenv("STIMGATE_DEBUG")
+              Sys.unsetenv("STIMGATE_BROWSE")
+            }, add = TRUE)
+          }
+          invisible(stimgate::stimgate_gate(
+            .data = flowWorkspace::load_gs(sim_data$path_gs),
+            path_project = path_project,
+            pop_gate = "root",
+            batch_list = sim_data$batch_list,
+            chnl = names(sim_data$chnl_list),
+            chnl_settings = list(
+              "BC1(La139)Dd" = list(bias_uns = 0.015) # down from 0.0778
+            )
+          ))
+
+          # Make plots
+          if (i == 1) {
+            plot_gate(
+              batch_list = sim_data$batch_list,
+              path_gs = sim_data$path_gs,
+              path_project = path_project,
+              chnl = names(sim_data$chnl_list),
+              path_dir_save_base = file.path(dir_cache_sim, "plot", "stimgate")
+            )
+          }
+
           # Extract StimGate statistics
           stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
             path_project,
@@ -299,7 +629,8 @@ list(
   ),
   # Aggregate correlation metrics across all simulations for poor_separation scenario
   tar_target(
-    corr_tbl_overall_poor_separation,
-    get_corr_tbl_overall(corr_tbl_by_sim_poor_separation)
+    corr_tbl_overall_poor_separation, {
+      get_corr_tbl_overall(corr_tbl_by_sim_poor_separation)
+    }
   )
 )
