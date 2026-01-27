@@ -25,7 +25,6 @@ targets::tar_option_set(
 # after environment setup.
 
 list(
-
   # specify _projr directories
   # ------------------
   # Get project directories from projr configuration
