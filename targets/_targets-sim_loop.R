@@ -84,12 +84,14 @@ list(
 
         # Run StimGate automated gating and extract statistics
         path_project <- file.path(dir_cache_sim, "stimgate")
+        Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
         invisible(stimgate::stimgate_gate(
           .data = flowWorkspace::load_gs(sim_data$path_gs),
           path_project = path_project,
           pop_gate = "root",
           batch_list = sim_data$batch_list,
-          chnl = names(sim_data$chnl_list)
+          chnl = names(sim_data$chnl_list),
+          debug = TRUE
         ))
 
         # Extract StimGate statistics
@@ -188,14 +190,15 @@ list(
 
         # Run StimGate automated gating and extract statistics
         path_project <- file.path(dir_cache_sim, "stimgate")
+        Sys.setenv("STIMGATE_INTERMEDIATE" = "TRUE")
         invisible(stimgate::stimgate_gate(
           .data = flowWorkspace::load_gs(sim_data$path_gs),
           path_project = path_project,
           pop_gate = "root",
           batch_list = sim_data$batch_list,
-          chnl = names(sim_data$chnl_list)
+          chnl = names(sim_data$chnl_list),
+          debug = TRUE
         ))
-
         # Extract StimGate statistics
         stats_tbl_bs_stimgate <- get_stats_tbl_bs_stimgate(
           path_project, chnl = names(sim_data$chnl_list)
@@ -213,7 +216,7 @@ list(
               path_gs_save = file.path(dirname(sim_data$path_gs), "gs_tg"),
               tol = x
             ))
-            
+
             if (inherits(tg_obj, "try-error")) {
               message("Error in gating with tol = ", x)
               return(NULL)
