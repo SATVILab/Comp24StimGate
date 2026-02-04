@@ -235,13 +235,17 @@ list(
               Sys.unsetenv("STIMGATE_BROWSE")
             }, add = TRUE)
           }
+          debug(stimgate:::.cytokine_cutpoint)
+          # debugonce(stimgate:::.gate_marker_get_adj_gates_all)
           invisible(stimgate::stimgate_gate(
             .data = flowWorkspace::load_gs(sim_data$path_gs),
             path_project = path_project,
             pop_gate = "root",
             batch_list = sim_data$batch_list,
-            chnl = names(sim_data$chnl_list)
+            chnl = names(sim_data$chnl_list),
+            tol_clust = 0.1
           ))
+          undebug(stimgate:::.cytokine_cutpoint)
 
           # Make plots
           if (i == 1) {

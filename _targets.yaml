@@ -4,3 +4,6 @@ sim_test:
 sim_loop:
   script: targets/_targets-sim_loop.R
   store: _tmp/targets/sim_loop/_targets
+sim_density:
+  script: targets/_targets-sim_density.R
+  store: _tmp/targets/sim_density/_targets

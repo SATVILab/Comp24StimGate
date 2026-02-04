@@ -26,7 +26,7 @@ get_chnl_list <- function(fs) {
     prop_mean_neg = 0.005,    # Mean proportion positive in unstimulated
     prop_sd_neg = 0.0075,     # SD of unstimulated positive proportion
     expr_mean_neg = 0,        # Mean expression for negative cells
-    expr_mean_pos = 2,        # Mean expression for positive cells (good separation)
+    expr_mean_pos = 2,        # Mean expression for positive cells(good separation)
     expr_sd_pos = 0.1         # SD of positive expression
   )
   # Define simulation parameters for BC2 channel
