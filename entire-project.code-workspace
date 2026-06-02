@@ -13,27 +13,19 @@
       "path": "../alt"
     },
     {
-      "path": "../UtilsCytoRSV"
+      "path": "../utils_cyto_rsv"
     },
     {
-      "path": "../stimgate"
+      "path": "../stimgate_dev"
     },
     {
-      "path": "../DataProcessed25PostMortemCyTOFCytokines"
+      "path": "../data_post_mortem"
     },
     {
-      "path": "../DataTidyACSCyTOFCytokinesTCells"
+      "path": "../data_acs_cytof_tcells"
     },
     {
-      "path": "../Analysis24StimGate"
+      "path": "../analysis_24_stimgate"
     }
-  ],
-  "settings": {
-    "files.watcherExclude": {
-      "../DataRawMTBVAC050/**": true
-    },
-    "search.exclude": {
-      "../DataRawMTBVAC050/**": true
-    }
-  }
+  ]
 }

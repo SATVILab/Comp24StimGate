@@ -4,8 +4,8 @@
 @analysis analysis
 @paper paper
 @alt alt
-SATVILab/UtilsCytoRSV
-SATVILab/stimgate@dev
-SATVILab/DataProcessed25PostMortemCyTOFCytokines
-SATVILab/DataTidyACSCyTOFCytokinesTCells
-SATVILab/Analysis24StimGate
+SATVILab/UtilsCytoRSV utils_cyto_rsv
+SATVILab/stimgate@dev stimgate_dev
+SATVILab/DataProcessed25PostMortemCyTOFCytokines data_post_mortem
+SATVILab/DataTidyACSCyTOFCytokinesTCells data_acs_cytof_tcells
+SATVILab/Analysis24StimGate analysis_24_stimgate
