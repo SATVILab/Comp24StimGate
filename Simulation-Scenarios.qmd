@@ -1,0 +1,120 @@
+```{r}
+#| include: false
+library(ggplot2)
+fn_vec <- list.files("R", full.names = TRUE, pattern = "\\.R$")
+for (i in seq_along(fn_vec)) {
+  source(fn_vec[i])
+}
+```
+
+
+```{r}
+# ---------------------------------------------------------
+# Define the Parameters for the 8 Scenarios
+# ---------------------------------------------------------
+scenarios <- list(
+  middle = list(mean_neg = 0, sd_neg = sqrt(1.5), mean_pos = 8, sd_pos = sqrt(1.5)),
+  extreme = list(mean_neg = sqrt(2), sd_neg = sqrt(2), mean_pos = 8 - sqrt(2), sd_pos = sqrt(2))
+)
+
+proportions <- list(
+  equal = 0.5,
+  unequal = 0.002226562 / 0.1425  # From the simulated weights in the text
+)
+
+transforms <- c("normal", "gamma")
+
+# Initialize storage
+results_list <- list()
+plot_list <- list()
+
+# ---------------------------------------------------------
+# Execute Loop over All Combinations
+# ---------------------------------------------------------
+set.seed(42) # For simulation reproducibility
+
+for (tr in transforms) {
+  for (scen_name in names(scenarios)) {
+    for (prop_name in names(proportions)) {
+      
+      params <- scenarios[[scen_name]]
+      params$prob_pos <- proportions[[prop_name]]
+      params$trans <- tr
+      
+      # Apply coordinate limits to Extreme plots to match user logic
+      if (scen_name == "extreme") {
+        params$coord_cartesian <- list("y" = c(0, 1))
+        params$coord_expand <- list("x" = 0, "y" = 0)
+      }
+      
+      # Run unified function
+      res <- do.call(analyze_overlap, params)
+      
+      # Tag the metrics dataframe with run conditions
+      res$metrics$Transform <- tools::toTitleCase(tr)
+      res$metrics$Overlap <- tools::toTitleCase(scen_name)
+      res$metrics$Proportion <- tools::toTitleCase(prop_name)
+      
+      results_list[[length(results_list) + 1]] <- res$metrics
+      
+      # Modify the plot slightly for the grid display (remove huge legends)
+      p <- res$plot + 
+        ggtitle(paste(tools::toTitleCase(tr), "|", tools::toTitleCase(scen_name), "|", tools::toTitleCase(prop_name))) +
+        theme(legend.position = "none", 
+              plot.title = element_text(size = 11, face = "bold"),
+              plot.subtitle = element_text(size = 9))
+      
+      plot_list[[length(plot_list) + 1]] <- p
+    }
+  }
+}
+
+# ---------------------------------------------------------
+# Compile Final Outputs
+# ---------------------------------------------------------
+
+# 1. The Combined Metrics Table
+final_metrics_table <- dplyr::bind_rows(results_list) |>
+  dplyr::select(Transform, Overlap, Proportion, Metric, Value) |>
+  dplyr::mutate(Value = purrr::map_dbl(Value, function(x) signif(x, 3))) |>
+  tidyr::pivot_wider(
+    names_from = Metric,
+    values_from = Value
+  )
+
+```
+
+
+```{r}
+#| results: asis
+final_metrics_table |> knitr::kable()
+```
+
+```{r}
+# 2. The Combined Multi-Panel Figure
+# (Extract the legend from the last plot to use as a shared legend)
+shared_legend <- cowplot::get_legend(
+  plot_list[[1]] + theme(legend.position = "bottom")
+)
+
+# Create the 2-column plot grid (4 rows x 2 cols)
+plot_grid_main <- cowplot::plot_grid(plotlist = plot_list, ncol = 2, align = "vh")
+
+# Combine the main grid with the shared legend at the bottom
+final_figure <- cowplot::plot_grid(plot_grid_main, shared_legend, ncol = 1, rel_heights = c(1, 0.05))
+
+# Save figure
+path_p <- projr::projr_path_get("cache", "sim-scenarios", "final_figure.png")
+ggplot2::ggsave(
+  filename = path_p,
+  plot = final_figure,
+  width = 18,
+  height = 25,
+  units = "cm"
+)
+```
+
+```{r}
+#| results: asis
+knitr::include_graphics(path_p)
+```
