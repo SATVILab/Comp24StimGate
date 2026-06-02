@@ -9,6 +9,46 @@
       ]
     },
     "codespaces": {
+      "SATVILab/Comp24StimGate": {
+        "permissions": {
+          "actions": "write",
+          "contents": "write",
+          "packages": "read",
+          "workflows": "write"
+        }
+      },
+      "SATVILab/DataProcessed25PostMortemCyTOFCytokines": {
+        "permissions": {
+          "actions": "write",
+          "contents": "write",
+          "packages": "read",
+          "workflows": "write"
+        }
+      },
+      "SATVILab/DataTidyACSCyTOFCytokinesTCells": {
+        "permissions": {
+          "actions": "write",
+          "contents": "write",
+          "packages": "read",
+          "workflows": "write"
+        }
+      },
+      "SATVILab/UtilsCytoRSV": {
+        "permissions": {
+          "actions": "write",
+          "contents": "write",
+          "packages": "read",
+          "workflows": "write"
+        }
+      },
+      "SATVILab/stimgate": {
+        "permissions": {
+          "actions": "write",
+          "contents": "write",
+          "packages": "read",
+          "workflows": "write"
+        }
+      },
       "repositories": {
         "SATVILab/Analysis24StimGate": {
           "permissions": {
