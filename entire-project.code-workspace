@@ -4,28 +4,28 @@
       "path": "."
     },
     {
-      "path": "../analysis"
+      "path": "analysis"
     },
     {
-      "path": "../paper"
+      "path": "paper"
     },
     {
-      "path": "../alt"
+      "path": "alt"
     },
     {
-      "path": "../utils_cyto_rsv"
+      "path": "utils_cyto_rsv"
     },
     {
-      "path": "../stimgate_dev"
+      "path": "stimgate_dev"
     },
     {
-      "path": "../data_post_mortem"
+      "path": "data_post_mortem"
     },
     {
-      "path": "../data_acs_cytof_tcells"
+      "path": "data_acs_cytof_tcells"
     },
     {
-      "path": "../analysis_24_stimgate"
+      "path": "analysis_24_stimgate"
     }
   ]
 }

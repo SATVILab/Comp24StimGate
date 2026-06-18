@@ -4,13 +4,13 @@
       "path": "."
     },
     {
-      "path": "../analysis"
+      "path": "analysis"
     },
     {
-      "path": "../paper"
+      "path": "paper"
     },
     {
-      "path": "../stimgate"
+      "path": "stimgate"
     }
   ],
   "settings": {
