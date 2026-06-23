@@ -1,33 +1,109 @@
-#' @title Simulate all cytokine combinations for a set of stimulation conditions for a single biological sample
-#' 
-#' @description Simulate a set of stimulation conditions for a single biological sample, where the first condition is always the unstimulated condition.
-#' 
-#' @return A list of length nCondition, where each element is a list with two elements: conditionMatrix and conditionLabels. conditionMatrix is a matrix of simulated data for that condition, and conditionLabels is a vector of labels for each cell in that condition. The first element is named `unstim`, and subsequent elements are named `stim1`, `stim2`, etc.
-#' @internal
-simCytSample <- function(
-  # first sample is always the unstimulated sample
+#' @title Simulate a set of stimulation conditions for multiple biological samples
+simCytExperiment <- function(
+  nSample,
   nMarker,
-  # number of samples
   nCondition,
-  # number of clusters,
   nCluster,
-  nCellByCondition, # vector of number of cells by sample,
-  # where first sample is the unstim.
-  # if a single number, then used for all
+  nCellByCondition,
   transformationFunc,
   mixtureType = "gaussianOnly",
-  sampleMeanMat = NA,
-  fixedLabelVec = NA,
-  probVecUns, # probability vector for sampling from unstim
-  effectSizeAddVecList = NULL, # list where each element
-  # is for a stimulated sample, 
-  # and where it is the absolute increase in the proportion of 
-  # cells in the cytokine-positive population
-  effectSizeMultVecList = NULL, # same as above, but multiplicative
-  probResponseVecByCondition = NULL, # list where it's the sampling vector for each
-  # stimulation condition
+  meanExprMat = NA,
+  clusterLabelVec = NA,
+  probVecUns,
+  probResponseVecByCondition = NULL,
+  samplePerturbationSd = 0,
   conditionPerturbationSd = 0,
-  conditionClusterPerturbationSd = 0
+  clusterPerturbationSd = 0
+) {
+  # validate inputs
+  stopifnot(is.numeric(nSample))
+  nSample <- as.integer(nSample)
+  stopifnot(nSample > 0L)
+  nMarker <- as.integer(nMarker)
+  stopifnot(nMarker > 0L)
+  nCondition <- as.integer(nCondition)
+  stopifnot(nCondition > 1L)
+  nCluster <- as.integer(nCluster)
+  stopifnot(nCluster > 0L)
+  stopifnot(nCluster == 2^nMarker)
+  stopifnot(is.function(transformationFunc))
+  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
+  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
+  stopifnot(all(nCellByCondition > 0))
+
+  lapply(seq_len(nSample), function(i) {
+    meanExprMat <- if (samplePerturbationSd == 0L) {
+      meanExprMat
+    } else {
+      meanExprMat + matrix(
+        rep(rnorm(nMarker, mean = 0, sd = samplePerturbationSd), each = nCluster),
+        byrow = FALSE,
+        nrow = nCluster,
+        ncol = nMarker
+      )
+    }
+    simCytSample(
+      nMarker = nMarker,
+      nCondition = nCondition,
+      nCluster = nCluster,
+      nCellByCondition = nCellByCondition,
+      transformationFunc = transformationFunc,
+      mixtureType = mixtureType,
+      meanExprMat = meanExprMat,
+      clusterLabelVec = clusterLabelVec,
+      probVecUns = probVecUns,
+      probResponseVecByCondition = probResponseVecByCondition,
+      conditionPerturbationSd = conditionPerturbationSd,
+      clusterPerturbationSd = clusterPerturbationSd
+    )
+  }) |>
+    stats::setNames(paste0("sample", seq_len(nSample)))
+}
+
+#' @title Simulate all cytokine combinations for a set of stimulation conditions for a single biological sample
+#' 
+#' @description Simulate a set of stimulation conditions (e.g., stimulated and unstimulated) for 
+#' a single biological sample, where the first condition is always the unstimulated condition.
+#' 
+#' @param nMarker Integer. Number of markers/dimensions.
+#' @param nCondition Integer. Number of stimulation conditions (must be >= 2).
+#' @param nCluster Integer. Number of clusters (must be a power of 2 between 2 and 1024).
+#' @param nCellByCondition Integer or numeric vector. Number of cells per condition. If a single 
+#'   value, it is recycled for all conditions.
+#' @param transformationFunc Function. Transformation to apply to simulated data (e.g., identity or 
+#'   gamma transformation).
+#' @param mixtureType Character. Type of mixture distribution: "gaussianOnly", "tOnly", or 
+#'   "tPlusGauss".
+#' @param meanExprMat Numeric matrix. Cluster mean vectors (nCluster x nMarker).
+#' @param clusterLabelVec Character vector. Labels for each cluster (length nCluster).
+#' @param probVecUns Numeric vector. Probability distribution for unstimulated condition 
+#'   (length nCluster, sums to 1).
+#' @param probResponseVecByCondition List. Probability response vectors for each stimulated 
+#'   condition (length nCondition - 1, each of length nCluster).
+#' @param conditionPerturbationSd Numeric. Standard deviation of condition-level perturbations 
+#'   to cluster means.
+#' @param clusterPerturbationSd Numeric. Standard deviation of cluster-level perturbations 
+#'   within each condition.
+#' 
+#' @return A list of length nCondition with named elements "unstim", "stim1", etc. Each element 
+#'   contains:
+#'   - `conditionMatrix`: Numeric matrix of simulated data (nCell x nMarker).
+#'   - `conditionLabels`: Character vector of cluster labels for each cell.
+#' 
+#' @internal
+simCytSample <- function(
+  nMarker,
+  nCondition,
+  nCluster,
+  nCellByCondition,
+  transformationFunc,
+  mixtureType = "gaussianOnly",
+  meanExprMat = NA,
+  clusterLabelVec = NA,
+  probVecUns,
+  probResponseVecByCondition = NULL,
+  conditionPerturbationSd = 0,
+  clusterPerturbationSd = 0
 ) {
   # check inputs
   stopifnot(is.integer(nCondition))
@@ -35,45 +111,40 @@ simCytSample <- function(
   stopifnot(nCondition > 1L)
   stopifnot(is.integer(nCluster))
   stopifnot(nCluster > 0L)
-  stopifnot(nCluster %in% 2^(1:10))
-  # check transformation function is a function
+  stopifnot(nCluster == 2^nMarker)
   stopifnot(is.function(transformationFunc))
-  # probResponseVecByCondition
+  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
+  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
+  stopifnot(all(nCellByCondition > 0))
   stopifnot(is.list(probResponseVecByCondition))
   stopifnot(all(sapply(probResponseVecByCondition, is.numeric)))
   stopifnot(length(probResponseVecByCondition) == (nCondition - 1L))
-  stopifnot(identical(c(sapply(probResponseVecByCondition, length), nCluster)))
-  # probVecUns
+  stopifnot(all(sapply(probResponseVecByCondition, length) == nCluster))
   stopifnot(is.numeric(probVecUns))
   stopifnot(length(probVecUns) == nCluster)
   stopifnot(all(probVecUns >= 0))
   stopifnot(all(probVecUns <= 1))
   stopifnot(abs(sum(probVecUns) - 1) < 1e-6)
-  # conditionPerturbationSd
   stopifnot(is.numeric(conditionPerturbationSd))
   stopifnot(length(conditionPerturbationSd) == 1L)
   stopifnot(conditionPerturbationSd >= 0)
-  # conditionClusterPerturbationSd
-  stopifnot(is.numeric(conditionClusterPerturbationSd))
-  stopifnot(length(conditionClusterPerturbationSd) == 1L)
-  stopifnot(conditionClusterPerturbationSd >= 0)
-  # sampleMeanMat
-  stopifnot(is.matrix(sampleMeanMat))
-  stopifnot(nrow(sampleMeanMat) == nCluster)
-  stopifnot(ncol(sampleMeanMat) == nMarker)
-  stopifnot(!any(is.na(sampleMeanMat)))
-  stopifnot(is.numeric(sampleMeanMat))
-  stopifnot(length(fixedLabelVec) == nCluster)
+  stopifnot(is.numeric(clusterPerturbationSd))
+  stopifnot(length(clusterPerturbationSd) == 1L)
+  stopifnot(clusterPerturbationSd >= 0)
+  stopifnot(is.matrix(meanExprMat))
+  stopifnot(nrow(meanExprMat) == nCluster)
+  stopifnot(ncol(meanExprMat) == nMarker)
+  stopifnot(!any(is.na(meanExprMat)))
+  stopifnot(is.numeric(meanExprMat))
+  stopifnot(is.character(clusterLabelVec))
+  stopifnot(length(clusterLabelVec) == nCluster)
+  
   nCellByCondition <- if (length(nCellByCondition) == 1L) {
     rep(nCellByCondition, nCondition)
   } else {
     nCellByCondition
   }
-  if (!is.null(probVecUns) && !is.null(probVecBySample)) {
-    stop("Cannot specify both probVecUns and probVecBySample at the same time")
-  }
-  # okay, so now we have to work out the actual proportions of each
-  # cluster by samples
+  
   probVecByCondition <- list(probVecUns)
   if (!is.null(probResponseVecByCondition)) {
     probVecByCondition <- probVecByCondition |>
@@ -82,65 +153,75 @@ simCytSample <- function(
       }))
   }
 
-  # now we can simulate each condition
-  conditionList <- lapply(seq_len(nCondition), function(i) {
+  lapply(seq_len(nCondition), function(i) {
+    meanExprMat <- if (conditionPerturbationSd == 0L) {
+      meanExprMat
+    } else {
+      meanExprMat + matrix(
+        rep(rnorm(nMarker, mean = 0, sd = conditionPerturbationSd), each = nCluster),
+        byrow = FALSE,
+        nrow = nCluster,
+        ncol = nMarker
+      )
+    }
     simCytCondition(
       nMarker = nMarker,
       nCell = nCellByCondition[[i]],
       transformationFunc = transformationFunc,
       mixtureType = mixtureType,
-      sampleMeanMat = sampleMeanMat,
-      fixedLabelVec = fixedLabelVec,
+      meanExprMat = meanExprMat,
+      clusterLabelVec = clusterLabelVec,
       probVecSample = probVecByCondition[[i]],
-      conditionPerturbationSd = conditionPerturbationSd,
-      conditionClusterPerturbationSd = conditionClusterPerturbationSd
+      clusterPerturbationSd = clusterPerturbationSd
     )
   }) |>
     stats::setNames(c("unstim", paste0("stim", seq_len(nCondition - 1L))))
 }
 
+#' @title Simulate cytometric data for a single stimulation condition
+#' 
+#' @description Simulate flow cytometric data for a single stimulation condition.
+#' 
+#' @param nMarker Integer. Number of markers/dimensions.
+#' @param nCell Integer. Total number of cells to simulate.
+#' @param transformationFunc Function. Transformation to apply to simulated data.
+#' @param mixtureType Character. Type of mixture distribution.
+#' @param meanExprMat Numeric matrix. Cluster mean vectors.
+#' @param clusterLabelVec Character vector. Cluster labels.
+#' @param probVecSample Numeric vector. Probability of sampling from each cluster.
+#' @param clusterPerturbationSd Numeric. Cluster-level perturbation SD.
+#' 
+#' @return A list with `conditionMatrix` and `conditionLabels`.
+#' 
+#' @keywords internal
 simCytCondition <- function(
-  # analagous to simSample
   nMarker,
   nCell,
   transformationFunc,
   mixtureType = "gaussianOnly",
-  sampleMeanMat = NA,
-  fixedLabelVec = NA,
-  # noiseDim = 0
+  meanExprMat = NA,
+  clusterLabelVec = NA,
   probVecSample,
-  # isKnockout = FALSE,
-  # isSpikeIn = FALSE,
-  # sRegime = 0,
-  # targetRanks = c(length(probVecSample) - 1, length(probVecSample)),
-  conditionPerturbationSd = 0,
-  conditionClusterPerturbationSd = 0
-  # batchEffect = 0
+  clusterPerturbationSd = 0
 ) {
-  numClusters <- nrow(sampleMeanMat)
+  numClusters <- nrow(meanExprMat)
   probVec <- probVecSample
-  # skipped knockout and spike-in here
 
-  # get number of cells per population
   nCellVec <- as.vector(t(stats::rmultinom(1, nCell, probVec)))
   nCellVecCum <- cumsum(nCellVec)
 
-  # get labels of cells
   nCellVecObserved <- nCellVec[nCellVec > 0L]
-  fixedLabelVecObserved <- fixedLabelVec[nCellVec > 0L]
+  clusterLabelVecObserved <- clusterLabelVec[nCellVec > 0L]
   cellLabelVec <- lapply(seq_along(nCellVecObserved), function(i) {
-    rep(fixedLabelVecObserved[i], nCellVecObserved[i])
+    rep(clusterLabelVecObserved[i], nCellVecObserved[i])
   }) |> unlist()
 
-  # population matrix
   outData <- matrix(NA_integer_, nrow = nCell, ncol = nMarker)
   for (clusterNumber in seq_len(numClusters)) {
     nCell <- nCellVec[[clusterNumber]]
-    # skip if there aren't any cells to simulate here
     if (nCell == 0L) {
       next
     }
-    # get indicies to insert into outData
     outDataIndClusterLower <- if (clusterNumber == 1L) {
       1L
     } else {
@@ -151,13 +232,14 @@ simCytCondition <- function(
       outDataIndClusterLower,
       outDataIndClusterUpper
     )
-    sampleMeanVecCluster <- as.numeric(sampleMeanMat[clusterNumber, , drop = TRUE])
-    outData[outDataIndClusterVec, ] <- simCytConditionCluster(
+    meanExprVec <- as.numeric(meanExprMat[clusterNumber, , drop = TRUE])
+    outData[outDataIndClusterVec, ] <- simCytCluster(
       nMarker = nMarker,
       nCell = nCell,
-      sampleMeanVecCluster = sampleMeanVecCluster,
-      perturbationSd = conditionPerturbationSd,
-      mixtureType = mixtureType
+      meanExprVec = meanExprVec,
+      perturbationSd = clusterPerturbationSd,
+      mixtureType = mixtureType,
+      clusterNumber = clusterNumber
     )
   }
   for (i in seq_len(nMarker)) outData[, i] <- transformationFunc(outData[, i])
@@ -167,26 +249,39 @@ simCytCondition <- function(
   cellLabelVec <- cellLabelVec[reorder_vec]
   list(
     conditionMatrix = outData,
-    conditionLabels = cellLabelVec#,
-    # knockoutInfo = knockoutStatus
+    conditionLabels = cellLabelVec
   )
 }
 
-simCytConditionCluster <- function(
+#' @title Simulate data for a single cluster in one condition
+#' 
+#' @description Generate multivariate normal or t-distributed data for a cluster.
+#' 
+#' @param nMarker Integer. Number of markers.
+#' @param nCell Integer. Number of cells to simulate.
+#' @param meanExprVec Numeric vector. Mean for this cluster.
+#' @param perturbationSd Numeric. SD of perturbations to the mean.
+#' @param mixtureType Character. Distribution type.
+#' @param clusterNumber Integer. Cluster identifier.
+#' 
+#' @return Numeric matrix of simulated data (nCell x nMarker).
+#' 
+#' @keywords internal
+simCytCluster <- function(
   nMarker,
   nCell,
-  sampleMeanVecCluster,
+  meanExprVec,
   perturbationSd = 0,
-  mixtureType
+  mixtureType,
+  clusterNumber
 ) {
   conditionPerturbationVec <- if (perturbationSd == 0L) {
-    0
+    meanExprVec
   } else {
-    rnorm(nMarker, mean = 0, sd = perturbationSd)
+    meanExprVec + rnorm(nMarker, mean = 0, sd = perturbationSd)
   }
-  conditionMeanVecCluster <- sampleMeanVecCluster + conditionPerturbationVec
   currentSigma <- Posdef(nMarker)
-  simCytConditionClusterData(
+  simCytClusterData(
     mixtureType = mixtureType,
     clusterNumber = clusterNumber,
     nCell = nCell,
@@ -195,7 +290,20 @@ simCytConditionCluster <- function(
   )
 }
 
-simCytConditionClusterData <- function(
+#' @title Generate simulated data from mixture component
+#' 
+#' @description Sample from multivariate normal or t distribution.
+#' 
+#' @param mixtureType Character. "gaussianOnly", "tOnly", or "tPlusGauss".
+#' @param clusterNumber Integer. Used for alternating distributions in "tPlusGauss".
+#' @param nCell Integer. Number of samples.
+#' @param muVec Numeric vector. Mean vector.
+#' @param sigmaMat Numeric matrix. Covariance matrix.
+#' 
+#' @return Numeric matrix of sampled data (nCell x length(muVec)).
+#' 
+#' @keywords internal
+simCytClusterData <- function(
   mixtureType,
   clusterNumber,
   nCell,
