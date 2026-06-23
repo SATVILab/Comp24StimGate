@@ -22,7 +22,7 @@
 #' @param clusterLabelVec Character vector. Cluster labels of length `nCluster`.
 #' @param probVecUns Numeric vector. Baseline cluster probabilities for the
 #'   unstimulated condition. Must have length `nCluster` and sum to 1.
-#' @param probResponseVecByCondition NULL or list. If provided, must be a list
+#' @param probResponseVecByStimCondition NULL or list. If provided, must be a list
 #'   of length `nCondition - 1`, where each element is a numeric vector of
 #'   length `nCluster`. Each vector is added to `probVecUns` to construct the
 #'   stimulated-condition cluster probabilities.
@@ -50,7 +50,7 @@ simCytExperiment <- function(
   meanExprMat = NA,
   clusterLabelVec = NA,
   probVecUns,
-  probResponseVecByCondition = NULL,
+  probResponseVecByStimCondition = NULL,
   samplePerturbationSd = 0,
   conditionPerturbationSd = 0,
   clusterPerturbationSd = 0
@@ -113,7 +113,7 @@ simCytExperiment <- function(
       meanExprMat = meanExprMatCurrent,
       clusterLabelVec = clusterLabelVec,
       probVecUns = probVecUns,
-      probResponseVecByCondition = probResponseVecByCondition,
+      probResponseVecByStimCondition = probResponseVecByStimCondition,
       conditionPerturbationSd = conditionPerturbationSd,
       clusterPerturbationSd = clusterPerturbationSd
     )
@@ -147,7 +147,7 @@ simCytExperiment <- function(
 #' @param clusterLabelVec Character vector. Labels for each cluster (length nCluster).
 #' @param probVecUns Numeric vector. Probability distribution for unstimulated condition 
 #'   (length nCluster, sums to 1).
-#' @param probResponseVecByCondition List. Probability response vectors for each stimulated 
+#' @param probResponseVecByStimCondition List. Probability response vectors for each stimulated 
 #'   condition (length nCondition - 1, each of length nCluster).
 #' @param conditionPerturbationSd Numeric. Standard deviation of condition-level perturbations 
 #'   to cluster means.
@@ -170,7 +170,7 @@ simCytSample <- function(
   meanExprMat = NA,
   clusterLabelVec = NA,
   probVecUns,
-  probResponseVecByCondition = NULL,
+  probResponseVecByStimCondition = NULL,
   conditionPerturbationSd = 0,
   clusterPerturbationSd = 0
 ) {
@@ -185,11 +185,11 @@ simCytSample <- function(
   stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
   stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
   stopifnot(all(nCellByCondition > 0))
-  if (!is.null(probResponseVecByCondition)) {
-    stopifnot(is.list(probResponseVecByCondition))
-    stopifnot(all(sapply(probResponseVecByCondition, is.numeric)))
-    stopifnot(length(probResponseVecByCondition) == (nCondition - 1L))
-    stopifnot(all(sapply(probResponseVecByCondition, length) == nCluster))
+  if (!is.null(probResponseVecByStimCondition)) {
+    stopifnot(is.list(probResponseVecByStimCondition))
+    stopifnot(all(sapply(probResponseVecByStimCondition, is.numeric)))
+    stopifnot(length(probResponseVecByStimCondition) == (nCondition - 1L))
+    stopifnot(all(sapply(probResponseVecByStimCondition, length) == nCluster))
   }
   stopifnot(is.numeric(probVecUns))
   stopifnot(length(probVecUns) == nCluster)
@@ -217,9 +217,9 @@ simCytSample <- function(
   }
   
   probVecByCondition <- list(probVecUns)
-  if (!is.null(probResponseVecByCondition)) {
+  if (!is.null(probResponseVecByStimCondition)) {
     probVecByCondition <- probVecByCondition |>
-      append(lapply(probResponseVecByCondition, function(probResponseVec) {
+      append(lapply(probResponseVecByStimCondition, function(probResponseVec) {
         probVecUns + probResponseVec
       }))
   }
@@ -320,7 +320,7 @@ simCytCondition <- function(
       outDataIndClusterUpper
     )
     meanExprVec <- as.numeric(meanExprMat[clusterNumber, , drop = TRUE])
-    outData[outDataIndClusterVec, ] <- simCytCluster(
+    outData[outDataIndClusterVec, drop = FALSE] <- simCytCluster(
       nMarker = nMarker,
       nCell = nCell,
       meanExprVec = meanExprVec,
@@ -329,10 +329,10 @@ simCytCondition <- function(
       clusterNumber = clusterNumber
     )
   }
-  for (i in seq_len(nMarker)) outData[, i] <- transformationFunc(outData[, i])
+  outData <- transformationFunc(outData)
   colnames(outData) <- paste0("F", seq_len(nMarker))
   reorder_vec <- sample.int(nrow(outData))
-  outData <- outData[reorder_vec, ]
+  outData <- outData[reorder_vec, , drop = FALSE]
   cellLabelVec <- cellLabelVec[reorder_vec]
   list(
     conditionMatrix = outData,

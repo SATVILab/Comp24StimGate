@@ -3,14 +3,24 @@ Posdef <- function(n, ev = runif(n, 1, 2)) {
     #Thu Feb 7, 20:02:30 CET 2008
     #Generates a positive a positive definine matrix of dimension n
     #ev bounds the covariance by 2
+    #adapted slightly.
+
+    # no QR decomposition for n=1 case
+    if (n == 1) {
+        return(matrix(ev, 1, 1))
+    }
+    
     Z <- matrix(ncol = n, rnorm(n^2))
     decomp <- qr(Z)
     Q <- qr.Q(decomp)
     R <- qr.R(decomp)
     d <- diag(R)
     ph <- d / abs(d)
-    O <- Q %*% diag(ph)
-    Z <- t(O) %*% diag(ev) %*% O
+    
+    # ensure that `diag` always returns a diagonal
+    # matrix of dim n x n, even when n = 1
+    O <- Q %*% diag(ph, nrow = n)
+    Z <- t(O) %*% diag(ev, nrow = n) %*% O
     return(Z)
 }
 
@@ -382,13 +392,7 @@ simulateExperiment <- function(
             batchEffect = nextBatchEffect
         )
         #record results
-        if (currentSample < 10) {
-            outName <- paste0("sample00", currentSample)
-        } else if (currentSample < 100) {
-            outName <- paste0("sample0", currentSample)
-        } else {
-            outName <- paste0("sample", currentSample)
-        }
+
         ff <- flowFrame(sampleData$sampleMatrix)
         flowList <- append(flowList, ff)
         names(flowList)[length(flowList)] <- outName
