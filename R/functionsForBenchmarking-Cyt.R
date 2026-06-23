@@ -55,22 +55,17 @@ simCytExperiment <- function(
   conditionPerturbationSd = 0,
   clusterPerturbationSd = 0
 ) {
-  # validate inputs
+  # Coerce inputs
   stopifnot(is.numeric(nSample))
   nSample <- as.integer(nSample)
-  stopifnot(nSample > 0L)
   nMarker <- as.integer(nMarker)
-  stopifnot(nMarker > 0L)
   nCondition <- as.integer(nCondition)
-  stopifnot(nCondition > 1L)
   nCluster <- as.integer(nCluster)
-  stopifnot(nCluster > 0L)
-  stopifnot(nCluster == 2^nMarker)
-  stopifnot(is.function(transformationFunc))
-  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
-  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
-  stopifnot(all(nCellByCondition > 0))
+  
+  # Validate inputs using helper
+  validate_experiment_inputs(nSample, nMarker, nCondition, nCluster, nCellByCondition, transformationFunc)
 
+  # Begin Simulation Logic
   nSampleXCondition <- nSample * nCondition
   sampleConditionLabelVec <- lapply(seq_len(nSample), function(currentSample) {
     if (currentSample < 10) {
@@ -83,14 +78,12 @@ simCytExperiment <- function(
     sampleName |> paste0("_", c("unstim", paste0("stim", seq_len(nCondition - 1L))))
   }) |>
     unlist()
-  flowFrameList <- lapply(seq_len(nSampleXCondition), function(i) {
-    NULL
-  }) |>
+    
+  flowFrameList <- lapply(seq_len(nSampleXCondition), function(i) NULL) |>
     stats::setNames(sampleConditionLabelVec)
-  labelsList <- lapply(seq_len(nSampleXCondition), function(i) {
-    NULL
-  }) |>
+  labelsList <- lapply(seq_len(nSampleXCondition), function(i) NULL) |>
     stats::setNames(sampleConditionLabelVec)
+    
   lapply(seq_len(nSample), function(sampleInd) {
     idx_lower <- (sampleInd - 1) * nCondition + 1
     meanExprMatCurrent <- if (samplePerturbationSd == 0L) {
@@ -103,6 +96,7 @@ simCytExperiment <- function(
         ncol = nMarker
       )
     }
+    
     outListSample <- simCytSample(
       nMarker = nMarker,
       nCondition = nCondition,
@@ -117,12 +111,14 @@ simCytExperiment <- function(
       conditionPerturbationSd = conditionPerturbationSd,
       clusterPerturbationSd = clusterPerturbationSd
     )
+    
     for (condInd in seq_len(nCondition)) {
       flowFrameList[[idx_lower + condInd - 1]] <<- outListSample$flowFrameList[[condInd]]
       labelsList[[idx_lower + condInd - 1]] <<- outListSample$conditionLabelsList[[condInd]]
     }
     NULL
   })
+  
   list(
     flowFrameList = flowFrameList,
     conditionLabelsList = labelsList
@@ -174,42 +170,14 @@ simCytSample <- function(
   conditionPerturbationSd = 0,
   clusterPerturbationSd = 0
 ) {
-  # check inputs
-  stopifnot(is.integer(nCondition))
-  stopifnot(is.integer(nMarker))
-  stopifnot(nCondition > 1L)
-  stopifnot(is.integer(nCluster))
-  stopifnot(nCluster > 0L)
-  stopifnot(nCluster == 2^nMarker)
-  stopifnot(is.function(transformationFunc))
-  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
-  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
-  stopifnot(all(nCellByCondition > 0))
-  if (!is.null(probResponseVecByStimCondition)) {
-    stopifnot(is.list(probResponseVecByStimCondition))
-    stopifnot(all(sapply(probResponseVecByStimCondition, is.numeric)))
-    stopifnot(length(probResponseVecByStimCondition) == (nCondition - 1L))
-    stopifnot(all(sapply(probResponseVecByStimCondition, length) == nCluster))
-  }
-  stopifnot(is.numeric(probVecUns))
-  stopifnot(length(probVecUns) == nCluster)
-  stopifnot(all(probVecUns >= 0))
-  stopifnot(all(probVecUns <= 1))
-  stopifnot(abs(sum(probVecUns) - 1) < 1e-6)
-  stopifnot(is.numeric(conditionPerturbationSd))
-  stopifnot(length(conditionPerturbationSd) == 1L)
-  stopifnot(conditionPerturbationSd >= 0)
-  stopifnot(is.numeric(clusterPerturbationSd))
-  stopifnot(length(clusterPerturbationSd) == 1L)
-  stopifnot(clusterPerturbationSd >= 0)
-  stopifnot(is.matrix(meanExprMat))
-  stopifnot(nrow(meanExprMat) == nCluster)
-  stopifnot(ncol(meanExprMat) == nMarker)
-  stopifnot(!any(is.na(meanExprMat)))
-  stopifnot(is.numeric(meanExprMat))
-  stopifnot(is.character(clusterLabelVec))
-  stopifnot(length(clusterLabelVec) == nCluster)
+  # Validate inputs using helper
+  validate_sample_inputs(
+    nCondition, nMarker, nCluster, nCellByCondition, transformationFunc, 
+    probResponseVecByStimCondition, probVecUns, conditionPerturbationSd, 
+    clusterPerturbationSd, meanExprMat, clusterLabelVec
+  )
   
+  # Begin Simulation Logic
   nCellByCondition <- if (length(nCellByCondition) == 1L) {
     rep(nCellByCondition, nCondition)
   } else {
@@ -225,14 +193,11 @@ simCytSample <- function(
   }
   
   conditionLabelVec <- c("unstim", paste0("stim", seq_len(nCondition - 1L)))
-  flowList <- lapply(seq_len(nCondition), function(i) {
-    NULL
-  }) |>
+  flowList <- lapply(seq_len(nCondition), function(i) NULL) |>
     stats::setNames(conditionLabelVec)
-  labelsList <- lapply(seq_len(nCondition), function(i) {
-    NULL
-  }) |>
+  labelsList <- lapply(seq_len(nCondition), function(i) NULL) |>
     stats::setNames(conditionLabelVec)
+    
   lapply(seq_len(nCondition), function(i) {
     meanExprMat <- if (conditionPerturbationSd == 0L) {
       meanExprMat
@@ -244,6 +209,7 @@ simCytSample <- function(
         ncol = nMarker
       )
     }
+    
     outListCondition <- simCytCondition(
       nMarker = nMarker,
       nCell = nCellByCondition[[i]],
@@ -254,11 +220,13 @@ simCytSample <- function(
       probVecSample = probVecByCondition[[i]],
       clusterPerturbationSd = clusterPerturbationSd
     )
+    
     ff <- flowCore::flowFrame(outListCondition$conditionMatrix)
     flowList[[i]] <<- ff
     labelsList[[i]] <<- outListCondition$conditionLabels
     NULL
   })
+  
   list(
     "flowFrameList" = flowList,
     "conditionLabelsList" = labelsList
@@ -303,7 +271,12 @@ simCytCondition <- function(
     rep(clusterLabelVecObserved[i], nCellVecObserved[i])
   }) |> unlist()
 
-  outData <- matrix(NA_real_, nrow = nCell, ncol = nMarker)
+  outData <- if (nMarker == 1) {
+    rep(NA_real_, nCell) 
+  } else {
+    matrix(NA_real_, nrow = nCell, ncol = nMarker)
+  }
+    
   for (clusterNumber in seq_len(numClusters)) {
     nCell <- nCellVec[[clusterNumber]]
     if (nCell == 0L) {
@@ -320,19 +293,29 @@ simCytCondition <- function(
       outDataIndClusterUpper
     )
     meanExprVec <- as.numeric(meanExprMat[clusterNumber, , drop = TRUE])
-    outData[outDataIndClusterVec, drop = FALSE] <- simCytCluster(
-      nMarker = nMarker,
-      nCell = nCell,
-      meanExprVec = meanExprVec,
-      perturbationSd = clusterPerturbationSd,
-      mixtureType = mixtureType,
-      clusterNumber = clusterNumber
-    )
+    simData <- simCytCluster(
+        nMarker = nMarker,
+        nCell = nCell,
+        meanExprVec = meanExprVec,
+        perturbationSd = clusterPerturbationSd,
+        mixtureType = mixtureType,
+        clusterNumber = clusterNumber
+      )
+    if (nMarker == 1L) {
+      outData[outDataIndClusterVec] <- simData |> as.numeric()
+    } else {
+      outData[outDataIndClusterVec, ] <- simData
+    }
   }
   outData <- transformationFunc(outData)
+  reorder_vec <- sample.int(nCell)
+  if (nMarker == 1L) {
+    outData <- outData[reorder_vec]
+    outData <- matrix(outData, ncol = 1)
+  } else {
+    outData <- outData[reorder_vec, ]
+  }
   colnames(outData) <- paste0("F", seq_len(nMarker))
-  reorder_vec <- sample.int(nrow(outData))
-  outData <- outData[reorder_vec, , drop = FALSE]
   cellLabelVec <- cellLabelVec[reorder_vec]
   list(
     conditionMatrix = outData,
@@ -426,4 +409,63 @@ simCytClusterData <- function(
       Sigma = sigmaMat
     )
   }
+}
+
+#' @title Validate inputs for simCytExperiment
+#' @keywords internal
+validate_experiment_inputs <- function(nSample, nMarker, nCondition, nCluster, nCellByCondition, transformationFunc) {
+  stopifnot(nSample > 0L)
+  stopifnot(nMarker > 0L)
+  stopifnot(nCondition > 1L)
+  stopifnot(nCluster > 0L)
+  stopifnot(nCluster == 2^nMarker)
+  stopifnot(is.function(transformationFunc))
+  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
+  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
+  stopifnot(all(nCellByCondition > 0))
+}
+
+#' @title Validate inputs for simCytSample
+#' @keywords internal
+validate_sample_inputs <- function(nCondition, nMarker, nCluster, nCellByCondition, transformationFunc, probResponseVecByStimCondition, probVecUns, conditionPerturbationSd, clusterPerturbationSd, meanExprMat, clusterLabelVec) {
+  stopifnot(is.integer(nCondition))
+  stopifnot(is.integer(nMarker))
+  stopifnot(nCondition > 1L)
+  stopifnot(is.integer(nCluster))
+  stopifnot(nCluster > 0L)
+  stopifnot(nCluster == 2^nMarker)
+  stopifnot(is.function(transformationFunc))
+  stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
+  stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
+  stopifnot(all(nCellByCondition > 0))
+  
+  if (!is.null(probResponseVecByStimCondition)) {
+    stopifnot(is.list(probResponseVecByStimCondition))
+    stopifnot(all(sapply(probResponseVecByStimCondition, is.numeric)))
+    stopifnot(length(probResponseVecByStimCondition) == (nCondition - 1L))
+    stopifnot(all(sapply(probResponseVecByStimCondition, length) == nCluster))
+  }
+  
+  stopifnot(is.numeric(probVecUns))
+  stopifnot(length(probVecUns) == nCluster)
+  stopifnot(all(probVecUns >= 0))
+  stopifnot(all(probVecUns <= 1))
+  stopifnot(abs(sum(probVecUns) - 1) < 1e-6)
+  
+  stopifnot(is.numeric(conditionPerturbationSd))
+  stopifnot(length(conditionPerturbationSd) == 1L)
+  stopifnot(conditionPerturbationSd >= 0)
+  
+  stopifnot(is.numeric(clusterPerturbationSd))
+  stopifnot(length(clusterPerturbationSd) == 1L)
+  stopifnot(clusterPerturbationSd >= 0)
+  
+  stopifnot(is.matrix(meanExprMat))
+  stopifnot(nrow(meanExprMat) == nCluster)
+  stopifnot(ncol(meanExprMat) == nMarker)
+  stopifnot(!any(is.na(meanExprMat)))
+  stopifnot(is.numeric(meanExprMat))
+  
+  stopifnot(is.character(clusterLabelVec))
+  stopifnot(length(clusterLabelVec) == nCluster)
 }
