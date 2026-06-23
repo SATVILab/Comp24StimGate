@@ -99,6 +99,14 @@
             "packages": "read",
             "workflows": "write"
           }
+        },
+        "RGLab/faust_simulation_study": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
         }
       }
     }

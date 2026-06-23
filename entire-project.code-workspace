@@ -26,6 +26,9 @@
     },
     {
       "path": "analysis_24_stimgate"
+    },
+    {
+      "path": "faust_sim"
     }
   ]
 }
