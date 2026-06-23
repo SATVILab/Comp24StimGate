@@ -1,0 +1,102 @@
+---
+title: Simulate best bandwidth
+format:
+  html:
+    embed-resources: true
+    toc: true
+---
+
+```{r}
+library(ggplot2)
+library(tibble)
+fn_vec <- list.files("R", full.names = TRUE)
+for (i in seq_along(fn_vec)) {
+  source(fn_vec[[i]])
+}
+```
+
+```{r}
+# debugonce(simCytCondition)
+for (trans in c("gaussian", "gamma")) {
+    transFunc <- switch(trans,
+      "gamma" = function(x) gamma(1 + abs(x / 4)),
+      "gaussian" = function(x) x,
+      stop("transformation not recognised")
+    )
+    limits_expand <- switch(trans,
+      "gamma" = list(c(0, 4)),
+      "gaussian" = list(c(-4, 12)),
+      stop("transformation not recognised")
+    )
+    outListCondition <- simCytCondition(
+      sampleDim = 2,
+      sampleSize = 1e4,
+      transformationFunc = transFunc,
+      mixtureType = "gaussianOnly",
+      sampleMeanMat = matrix(
+        c(c(8, 8), c(8, 0), c(0, 8), c(0, 0)),
+        byrow = TRUE,
+        ncol = 2
+      ),
+      fixedLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
+      probVecSample = c(0.05, 0.02, 0.075, 0.82)
+    )
+    plot_tbl <- tibble::tibble(
+      pop = outListCondition$conditionLabels
+    ) |>
+      dplyr::bind_cols(
+        outListCondition$conditionMatrix
+      )
+    pop_vec <- unique(plot_tbl$pop)
+    p_list <- lapply(pop_vec, function(x) {
+      UtilsCytoRSV::plot_cyto(
+        plot_tbl |>
+          dplyr::filter(pop == x),
+        marker = c("F1", "F2"),
+        limits_expand = limits_expand
+      ) +
+      labs(title = x) +
+      geom_hline(yintercept = transFunc(c(0, 8)), col = "red", alpha = 0.4) +
+      geom_vline(xintercept = transFunc(c(0, 8)), col = "red", alpha = 0.4)
+    })
+    plot_grid <- cowplot::plot_grid(plotlist = p_list, ncol = 2) +
+      theme(
+        panel.background = element_rect(fill = "white", colour = NA),
+        plot.background = element_rect(fill = "white", colour = NA)
+        )
+    path_save <- projr::projr_path_get(
+      "cache", "sim-bandwidth", paste0("p-condition-", trans, ".png")
+    )
+    ggplot2::ggsave(
+      path_save,
+      units = "cm",
+      width = 16,
+      height = 16
+    )
+}
+```
+
+```{r}
+# debugonce(simCytSample)
+simCytSample(
+  nMarker = 2L,
+  nCondition = 3L,
+  nCluster = 4L,
+  nCellByCondition = c(1e4, 1e4, 1e4),
+  transformationFunc = function(x) x,
+  mixtureType = "gaussianOnly",
+  sampleMeanMat = matrix(
+    c(c(8, 8), c(8, 0), c(0, 8), c(0, 0)),
+    byrow = TRUE,
+    ncol = 2
+  ),
+  fixedLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
+  probResponseVecByCondition = list(
+    c(0.1, 0.05, 0.0025, 0.8425),
+    c(0.00001, 0.0001, 0.0001, 0.99978)
+  ),
+  probVecUns = c(0.05, 0.02, 0.075, 0.82),
+  conditionPerturbationSd = 0,
+  conditionClusterPerturbationSd = 0
+)
+```

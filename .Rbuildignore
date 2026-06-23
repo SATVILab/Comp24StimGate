@@ -16,20 +16,19 @@
 ^docs$
 ^_projr\.yml$
 ^README\.Rmd$
-^Simulation\.qmd$
+^Simulation-Bandwidth\.qmd$
 ^_dependencies\.R$
 ^_targets\.yaml$
 ^BUILDLOG\.md$
 ^CHANGELOG\.md$
 ^manifest\.csv$
-^Rplots\.pdf$
 ^\.devcontainer/
 ^\.devcontainer$
 ^\.github/
 ^\.github$
-^Simulation_files/
-^Simulation_files$
-^Simulation\.html/
-^Simulation\.html$
+^Simulation-Bandwidth_files/
+^Simulation-Bandwidth_files$
+^Simulation-Bandwidth\.html/
+^Simulation-Bandwidth\.html$
 # End of projr section
 

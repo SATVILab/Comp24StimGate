@@ -62,7 +62,11 @@ for (tr in transforms) {
         ggtitle(paste(tools::toTitleCase(tr), "|", tools::toTitleCase(scen_name), "|", tools::toTitleCase(prop_name))) +
         theme(legend.position = "none", 
               plot.title = element_text(size = 11, face = "bold"),
-              plot.subtitle = element_text(size = 9))
+              plot.subtitle = element_text(size = 9)) +
+        theme(
+          panel.background = element_rect(fill = "white", colour = NA),
+          plot.background = element_rect(fill = "white", colour = NA)
+        )
       
       plot_list[[length(plot_list) + 1]] <- p
     }
@@ -101,11 +105,15 @@ shared_legend <- cowplot::get_legend(
 plot_grid_main <- cowplot::plot_grid(plotlist = plot_list, ncol = 2, align = "vh")
 
 # Combine the main grid with the shared legend at the bottom
-final_figure <- cowplot::plot_grid(plot_grid_main, shared_legend, ncol = 1, rel_heights = c(1, 0.05))
+final_figure <- cowplot::plot_grid(plot_grid_main, shared_legend, ncol = 1, rel_heights = c(1, 0.05)) +
+  theme(
+    plot.background = element_rect(fill = "white", colour = NA),
+    panel.background = element_rect(fill = "white", colour = NA)
+  )
 
 # Save figure
 path_p <- projr::projr_path_get("cache", "sim-scenarios", "final_figure.png")
-ggplot2::ggsave(
+ggsave(
   filename = path_p,
   plot = final_figure,
   width = 18,

@@ -11,9 +11,8 @@ _data_raw/**
 _tmp/**
 _output/**
 docs/**
-Rplots.pdf
-Simulation_files/**
-Simulation.html/**
+Simulation-Bandwidth_files/**
+Simulation-Bandwidth.html/**
 # End of projr section
 
 Rplots.pdf
