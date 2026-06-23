@@ -1,4 +1,44 @@
 #' @title Simulate a set of stimulation conditions for multiple biological samples
+#
+#' @description Simulate stimulation conditions (e.g., stimulated and unstimulated) for 
+#' multiple biological samples, where each sample has one unstimulated condition 
+#' and one or more stimulated conditions. The outputs are returned as lists of `flowFrame` 
+#' objects representing each sample-condition combination, and matching lists of cellular 
+#' cluster labels.
+#
+#' @param nSample Integer. Number of biological samples to simulate.
+#' @param nMarker Integer. Number of markers/dimensions.
+#' @param nCondition Integer. Number of conditions per sample. The first
+#'   condition is unstimulated and the rest are stimulated.
+#' @param nCluster Integer. Number of clusters. Must equal `2^nMarker`.
+#' @param nCellByCondition Numeric or integer vector. Number of cells per
+#'   condition. If length is 1, the value is recycled across all conditions.
+#' @param transformationFunc Function. Transformation applied marker-wise to
+#'   simulated expression values.
+#' @param mixtureType Character. Mixture distribution used for simulation.
+#'   Supported values are "gaussianOnly", "tOnly", and "tPlusGauss".
+#' @param meanExprMat Numeric matrix. Baseline cluster means with dimensions
+#'   `nCluster x nMarker`.
+#' @param clusterLabelVec Character vector. Cluster labels of length `nCluster`.
+#' @param probVecUns Numeric vector. Baseline cluster probabilities for the
+#'   unstimulated condition. Must have length `nCluster` and sum to 1.
+#' @param probResponseVecByCondition NULL or list. If provided, must be a list
+#'   of length `nCondition - 1`, where each element is a numeric vector of
+#'   length `nCluster`. Each vector is added to `probVecUns` to construct the
+#'   stimulated-condition cluster probabilities.
+#' @param samplePerturbationSd Numeric. Standard deviation of sample-level
+#'   perturbations added to cluster means. Default is 0.
+#' @param conditionPerturbationSd Numeric. Standard deviation of condition-level
+#'   perturbations added to cluster means within each sample. Default is 0.
+#' @param clusterPerturbationSd Numeric. Standard deviation of cluster-level
+#'   perturbations applied during cell-level simulation. Default is 0.
+#
+#' @return A list with two elements:
+#'   - `flowFrameList`: A named list of `flowCore::flowFrame` objects.
+#'   - `conditionLabelsList`: A named list of character vectors of per-cell cluster labels.
+#'   Names of list elements are formatted as `sampleXXX_unstim`, `sampleXXX_stim1`, etc.
+#
+#' @export
 simCytExperiment <- function(
   nSample,
   nMarker,
@@ -51,9 +91,9 @@ simCytExperiment <- function(
     NULL
   }) |>
     stats::setNames(sampleConditionLabelVec)
-  lapply(seq_len(nSample), function(i) {
-    idx_lower <- (i - 1) * nCondition + 1
-    meanExprMat <- if (samplePerturbationSd == 0L) {
+  lapply(seq_len(nSample), function(sampleInd) {
+    idx_lower <- (sampleInd - 1) * nCondition + 1
+    meanExprMatCurrent <- if (samplePerturbationSd == 0L) {
       meanExprMat
     } else {
       meanExprMat + matrix(
@@ -63,26 +103,30 @@ simCytExperiment <- function(
         ncol = nMarker
       )
     }
-    simCytSample(
+    outListSample <- simCytSample(
       nMarker = nMarker,
       nCondition = nCondition,
       nCluster = nCluster,
       nCellByCondition = nCellByCondition,
       transformationFunc = transformationFunc,
       mixtureType = mixtureType,
-      meanExprMat = meanExprMat,
+      meanExprMat = meanExprMatCurrent,
       clusterLabelVec = clusterLabelVec,
       probVecUns = probVecUns,
       probResponseVecByCondition = probResponseVecByCondition,
       conditionPerturbationSd = conditionPerturbationSd,
       clusterPerturbationSd = clusterPerturbationSd
     )
-    for (i in nCondition) {
-      flowFrameList[[idx_lower + i - 1]] <<- simCytSample$flowFrameList[[i]]
-      labelsList[[idx_lower + i - 1]] <<- simCytSample$conditionLabelsList[[i]]
+    for (condInd in seq_len(nCondition)) {
+      flowFrameList[[idx_lower + condInd - 1]] <<- outListSample$flowFrameList[[condInd]]
+      labelsList[[idx_lower + condInd - 1]] <<- outListSample$conditionLabelsList[[condInd]]
     }
     NULL
   })
+  list(
+    flowFrameList = flowFrameList,
+    conditionLabelsList = labelsList
+  )
 }
 
 #' @title Simulate all cytokine combinations for a set of stimulation conditions for a single biological sample
