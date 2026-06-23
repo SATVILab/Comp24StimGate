@@ -7,6 +7,7 @@ format:
 ---
 
 ```{r}
+#| include: false
 library(ggplot2)
 library(tibble)
 fn_vec <- list.files("R", full.names = TRUE)
@@ -14,6 +15,10 @@ for (i in seq_along(fn_vec)) {
   source(fn_vec[[i]])
 }
 ```
+
+## Checks
+
+### Simulations
 
 ```{r}
 # debugonce(simCytCondition)
@@ -219,4 +224,105 @@ for (trans in c("gaussian", "gamma")) {
     )
   }
 }
+```
+
+### Analysis
+
+```{r}
+nCellStimVec <- c(1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6)
+probResponseVec <- c(1/5e5, 1/2e5, 1/1e5, 1/5e4, 1/2e4, 1/1e4, 1/5e3, 1/2e3, 1/1e3, 1/5e2, 1/2e2, 1/1e2, 1/5e1, 1/2e1, 1/1e1, 1/5, 1/2)
+meanPosVec <- seq_len(8)
+transformationVec <- c("gaussian", "gamma")
+samplePerturbationSd = c(0, sqrt(1/4), sqrt(1/2), 1, sqrt(2), 2)
+conditionPerturbationSd = c(0, sqrt(1/4), sqrt(1/2), 1, sqrt(2), 2)
+clusterPerturbationSd = c(0, sqrt(1/4), sqrt(1/2), 1, sqrt(2), 2)
+backgroundRelativeToResponseVec <- c(2, 1, 1/2, 0.2, 0.1, 0.05, 0.01, 0.001)
+nCellUnsRelativeToStimVec <- c(0.1, 0.2, 0.5, 1, 2, 5, 10)
+
+# bandwidth methods
+bandwidthMethodVec <- c("hpi_0", "hpi_1", "hpi_2", "hpi_3", "sj", "nrd0")
+bandwidthNCellUpperVec <- c(2.5e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, Inf)
+bandwithNCellLowerVec <- c(0, 10, 20, 30, 50, 100, 200, 500, 1e3)
+biasUnsVec <- seq(0, 2, by = 0.2)
+```
+
+```{r}
+# loop parameters
+nCellStim <- 1e5
+probResponse <- 0.02
+meanPos <- 8
+transformation <- "gaussian"
+samplePerturbationSd <- 0
+conditionPerturbationSd <- 0
+clusterPerturbationSd <- 0
+backgroundRelativeToResponse <- 0.2
+nCellUnsRelativeToStim <- 1
+
+# stimgate parameters
+biasUns <- 0.2
+
+# calculated parameters
+nCellUns <- round(nCellStim * nCellUnsRelativeToStim)
+nCellByCondition <- c(nCellUns, nCellStim)
+transformationFunc <- switch(transformation,
+    "gamma" = function(x) gamma(1 + abs(x / 4)),
+    "gaussian" = function(x) x,
+    stop("transformation not recognised")
+  )
+meanExprMat <- matrix(
+  c(meanPos, 0),
+  byrow = TRUE,
+  ncol = 1
+)
+clusterLabelVec <- c("gp", "gn")
+probVecStim <- c(1 - probResponse, probResponse)
+probResponseUns <- probResponse * backgroundRelativeToResponse
+probVecUns <- c(1 - probResponseUns, probResponseUns)
+probResponseVecByStimCondition <- list(probVecStim)
+iterNum <- 1
+
+nSample <- 1L
+nMarker <- 1L
+nCondition <- 2L
+nCluster <- 2L
+
+print(paste0("iter ", iterNum))
+outListExperiment <- simCytExperiment(
+  nSample = nSample,
+  nMarker = nMarker,
+  nCondition = nCondition,
+  nCluster = nCluster,
+  nCellByCondition = nCellByCondition,
+  transformationFunc = transformationFunc,
+  mixtureType = "gaussianOnly",
+  meanExprMat = meanExprMat,
+  clusterLabelVec = clusterLabelVec,
+  probVecUns = probVecUns,
+  probResponseVecByStimCondition = probResponseVecByStimCondition,
+  conditionPerturbationSd = conditionPerturbationSd,
+  clusterPerturbationSd = clusterPerturbationSd,
+  samplePerturbationSd = samplePerturbationSd
+)
+
+# apply stimgate
+fs <- as(outListExperiment[["flowFrameList"]], "flowSet")
+gs <- flowWorkspace::GatingSet(fs)
+
+path_project <- projr::projr_path_get(
+  "cache", "sim-bandwidth", "check", "gate", paste0("iter_", i)
+)
+batch_list <- lapply(seq(nSample), function(i) {
+  seq((i - 1) * nCondition + 1, i * nCondition)
+})
+chnl <- list(
+  "cut" = "F1"
+)
+
+stimgate::stimgate_gate(
+  path_project = path_project,
+  .data = gs,
+  batch_list = batch_list,
+  chnl = chnl,
+  bias_uns = biasUns
+)
 ```
