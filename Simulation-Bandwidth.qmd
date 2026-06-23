@@ -33,13 +33,13 @@ for (trans in c("gaussian", "gamma")) {
       nCell = 1e4,
       transformationFunc = transFunc,
       mixtureType = "gaussianOnly",
-      sampleMeanMat = matrix(
+      meanExprMat = matrix(
         c(c(8, 8), c(8, 0), c(0, 8), c(0, 0)),
         byrow = TRUE,
         ncol = 2
       ),
-      fixedLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
-      probVecSample = c(0.05, 0.02, 0.075, 0.82)
+      clusterLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
+      probVecSample = c(0.05, 0.02, 0.075, 0.855)
     )
     plot_tbl <- tibble::tibble(
       pop = outListCondition$conditionLabels
@@ -96,19 +96,19 @@ for (trans in c("gaussian", "gamma")) {
     nCellByCondition = c(1e4, 1e4, 1e4),
     transformationFunc = transFunc,
     mixtureType = "gaussianOnly",
-    sampleMeanMat = matrix(
+    meanExprMat = matrix(
       c(c(8, 8), c(8, 0), c(0, 8), c(0, 0)),
       byrow = TRUE,
       ncol = 2
     ),
-    fixedLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
+    clusterLabelVec = c("gp2p", "gp2n", "gn2p", "gn2n"),
     probResponseVecByCondition = list(
       c(0.1, 0.05, 0.0025, 0.8425),
       c(0.00001, 0.0001, 0.0001, 0.99978)
     ),
     probVecUns = c(0.05, 0.02, 0.075, 0.855),
     conditionPerturbationSd = 0,
-    conditionClusterPerturbationSd = 0
+    clusterPerturbationSd = 0
   )
   for (i in seq_along(outListSample)) {
     stim <- names(outListSample)[[i]]

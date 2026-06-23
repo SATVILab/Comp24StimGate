@@ -31,7 +31,28 @@ simCytExperiment <- function(
   stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
   stopifnot(all(nCellByCondition > 0))
 
+  nSampleXCondition <- nSample * nCondition
+  sampleConditionLabelVec <- lapply(seq_len(nSample), function(currentSample) {
+    if (currentSample < 10) {
+        sampleName <- paste0("sample00", currentSample)
+    } else if (currentSample < 100) {
+        sampleName <- paste0("sample0", currentSample)
+    } else {
+        sampleName <- paste0("sample", currentSample)
+    }
+    sampleName |> paste0("_", c("unstim", paste0("stim", seq_len(nCondition - 1L))))
+  }) |>
+    unlist()
+  flowFrameList <- lapply(seq_len(nSampleXCondition), function(i) {
+    NULL
+  }) |>
+    stats::setNames(sampleConditionLabelVec)
+  labelsList <- lapply(seq_len(nSampleXCondition), function(i) {
+    NULL
+  }) |>
+    stats::setNames(sampleConditionLabelVec)
   lapply(seq_len(nSample), function(i) {
+    idx_lower <- (i - 1) * nCondition + 1
     meanExprMat <- if (samplePerturbationSd == 0L) {
       meanExprMat
     } else {
@@ -56,8 +77,12 @@ simCytExperiment <- function(
       conditionPerturbationSd = conditionPerturbationSd,
       clusterPerturbationSd = clusterPerturbationSd
     )
-  }) |>
-    stats::setNames(paste0("sample", seq_len(nSample)))
+    for (i in nCondition) {
+      flowFrameList[[idx_lower + i - 1]] <<- simCytSample$flowFrameList[[i]]
+      labelsList[[idx_lower + i - 1]] <<- simCytSample$conditionLabelsList[[i]]
+    }
+    NULL
+  })
 }
 
 #' @title Simulate all cytokine combinations for a set of stimulation conditions for a single biological sample
@@ -116,10 +141,12 @@ simCytSample <- function(
   stopifnot(is.numeric(nCellByCondition) || is.integer(nCellByCondition))
   stopifnot(length(nCellByCondition) %in% c(1L, nCondition))
   stopifnot(all(nCellByCondition > 0))
-  stopifnot(is.list(probResponseVecByCondition))
-  stopifnot(all(sapply(probResponseVecByCondition, is.numeric)))
-  stopifnot(length(probResponseVecByCondition) == (nCondition - 1L))
-  stopifnot(all(sapply(probResponseVecByCondition, length) == nCluster))
+  if (!is.null(probResponseVecByCondition)) {
+    stopifnot(is.list(probResponseVecByCondition))
+    stopifnot(all(sapply(probResponseVecByCondition, is.numeric)))
+    stopifnot(length(probResponseVecByCondition) == (nCondition - 1L))
+    stopifnot(all(sapply(probResponseVecByCondition, length) == nCluster))
+  }
   stopifnot(is.numeric(probVecUns))
   stopifnot(length(probVecUns) == nCluster)
   stopifnot(all(probVecUns >= 0))
@@ -152,7 +179,16 @@ simCytSample <- function(
         probVecUns + probResponseVec
       }))
   }
-
+  
+  conditionLabelVec <- c("unstim", paste0("stim", seq_len(nCondition - 1L)))
+  flowList <- lapply(seq_len(nCondition), function(i) {
+    NULL
+  }) |>
+    stats::setNames(conditionLabelVec)
+  labelsList <- lapply(seq_len(nCondition), function(i) {
+    NULL
+  }) |>
+    stats::setNames(conditionLabelVec)
   lapply(seq_len(nCondition), function(i) {
     meanExprMat <- if (conditionPerturbationSd == 0L) {
       meanExprMat
@@ -164,7 +200,7 @@ simCytSample <- function(
         ncol = nMarker
       )
     }
-    simCytCondition(
+    outListCondition <- simCytCondition(
       nMarker = nMarker,
       nCell = nCellByCondition[[i]],
       transformationFunc = transformationFunc,
@@ -174,8 +210,15 @@ simCytSample <- function(
       probVecSample = probVecByCondition[[i]],
       clusterPerturbationSd = clusterPerturbationSd
     )
-  }) |>
-    stats::setNames(c("unstim", paste0("stim", seq_len(nCondition - 1L))))
+    ff <- flowCore::flowFrame(outListCondition$conditionMatrix)
+    flowList[[i]] <<- ff
+    labelsList[[i]] <<- outListCondition$conditionLabels
+    NULL
+  })
+  list(
+    "flowFrameList" = flowList,
+    "conditionLabelsList" = labelsList
+  )
 }
 
 #' @title Simulate cytometric data for a single stimulation condition
@@ -216,7 +259,7 @@ simCytCondition <- function(
     rep(clusterLabelVecObserved[i], nCellVecObserved[i])
   }) |> unlist()
 
-  outData <- matrix(NA_integer_, nrow = nCell, ncol = nMarker)
+  outData <- matrix(NA_real_, nrow = nCell, ncol = nMarker)
   for (clusterNumber in seq_len(numClusters)) {
     nCell <- nCellVec[[clusterNumber]]
     if (nCell == 0L) {
@@ -285,7 +328,7 @@ simCytCluster <- function(
     mixtureType = mixtureType,
     clusterNumber = clusterNumber,
     nCell = nCell,
-    muVec = conditionMeanVecCluster,
+    muVec = conditionPerturbationVec,
     sigmaMat = currentSigma
   )
 }
