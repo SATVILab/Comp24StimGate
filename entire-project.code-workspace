@@ -4,28 +4,7 @@
       "path": "."
     },
     {
-      "path": "analysis"
-    },
-    {
-      "path": "paper"
-    },
-    {
-      "path": "alt"
-    },
-    {
-      "path": "utils_cyto_rsv"
-    },
-    {
-      "path": "stimgate_dev"
-    },
-    {
-      "path": "data_post_mortem"
-    },
-    {
-      "path": "data_acs_cytof_tcells"
-    },
-    {
-      "path": "analysis_24_stimgate"
+      "path": "stimgate"
     },
     {
       "path": "faust_sim"

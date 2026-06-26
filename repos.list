@@ -1,12 +1,5 @@
 # <owner>/<repo> format where <owner> is the GitHub remote owner and
 # <repo> is the repo name, for example:
 # SATVILab/projr
-@analysis analysis
-@paper paper
-@alt alt
-SATVILab/UtilsCytoRSV utils_cyto_rsv
-SATVILab/stimgate@dev stimgate_dev
-SATVILab/DataProcessed25PostMortemCyTOFCytokines data_post_mortem
-SATVILab/DataTidyACSCyTOFCytokinesTCells data_acs_cytof_tcells
-SATVILab/Analysis24StimGate analysis_24_stimgate
+SATVILab/stimgate stimgate
 RGLab/faust_simulation_study faust_sim
