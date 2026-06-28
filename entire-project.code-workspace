@@ -9,5 +9,8 @@
     {
       "path": "faust_sim"
     }
-  ]
+  ],
+  "settings": {
+    "r.lsp.promptToInstall": false
+  }
 }
