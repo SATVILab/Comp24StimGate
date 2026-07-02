@@ -1,7 +1,5 @@
 {
   "image": "ghcr.io/satvilab/devcontainers-2024-stimgate:v1.3.0",
-  "remoteUser": "rstudio",
-  "containerUser": "rstudio",
   "customizations": {
     "vscode": {
       "extensions": [
