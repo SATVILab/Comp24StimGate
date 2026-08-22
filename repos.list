@@ -2,4 +2,5 @@
 # <repo> is the repo name, for example:
 # SATVILab/projr
 SATVILab/stimgate stimgate
+SATVILab/simcyto simcyto
 RGLab/faust_simulation_study faust_sim

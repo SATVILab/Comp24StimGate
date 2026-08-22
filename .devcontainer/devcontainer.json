@@ -105,6 +105,14 @@
             "packages": "read",
             "workflows": "write"
           }
+        },
+        "SATVILab/simcyto": {
+          "permissions": {
+            "actions": "write",
+            "contents": "write",
+            "packages": "read",
+            "workflows": "write"
+          }
         }
       }
     }

@@ -7,6 +7,9 @@
       "path": "stimgate"
     },
     {
+      "path": "simcyto"
+    },
+    {
       "path": "faust_sim"
     }
   ],
