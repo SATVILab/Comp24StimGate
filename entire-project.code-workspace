@@ -7,6 +7,9 @@
       "path": "stimgate"
     },
     {
+      "path": "acs_data_tidy_cyt_flowsom"
+    },
+    {
       "path": "simcyto"
     },
     {
