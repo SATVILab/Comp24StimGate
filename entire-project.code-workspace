@@ -10,6 +10,9 @@
       "path": "acs_data_tidy_cyt_flowsom"
     },
     {
+      "path": "acs_data_tidy_cyt_primary"
+    },
+    {
       "path": "simcyto"
     },
     {
