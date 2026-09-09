@@ -7,7 +7,7 @@
       "path": "stimgate"
     },
     {
-      "path": "stimgate-store"
+      "path": "acs_report_primary"
     },
     {
       "path": "acs_data_tidy_cyt_flowsom"
